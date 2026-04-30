@@ -1567,19 +1567,6 @@ body:hover .hollywood {
                     
                         <div class="user-item">
                             <div class="user-item-info">
-                                <div class="user-item-name" title="projengr">projengr</div>
-                                <div class="user-item-role">Role: admin</div>
-                                <div class="user-item-password" title="level1">Password: level1</div>
-                            </div>
-                            <div class="user-item-permissions">8/8 access</div>
-                            <div class="user-item-actions">
-                                <button class="edit-user-btn" onclick="AuthSystem.editUserPermissions('projengr')">Edit</button>
-                                <button class="delete-user-btn" onclick="AuthSystem.deleteUserConfirm('projengr')">Delete</button>
-                            </div>
-                        </div>
-                    
-                        <div class="user-item">
-                            <div class="user-item-info">
                                 <div class="user-item-name" title="jemmer">jemmer</div>
                                 <div class="user-item-role">Role: user</div>
                                 <div class="user-item-password" title="qaqc1">Password: qaqc1</div>
@@ -1688,7 +1675,7 @@ body:hover .hollywood {
                                 <div class="user-item-role">Role: user</div>
                                 <div class="user-item-password" title="theqs">Password: theqs</div>
                             </div>
-                            <div class="user-item-permissions">0/8 access</div>
+                            <div class="user-item-permissions">8/8 access</div>
                             <div class="user-item-actions">
                                 <button class="edit-user-btn" onclick="AuthSystem.editUserPermissions('jeffered')">Edit</button>
                                 <button class="delete-user-btn" onclick="AuthSystem.deleteUserConfirm('jeffered')">Delete</button>
@@ -1720,6 +1707,32 @@ body:hover .hollywood {
                                 <button class="delete-user-btn" onclick="AuthSystem.deleteUserConfirm('warehouse')">Delete</button>
                             </div>
                         </div>
+                    
+                        <div class="user-item">
+                            <div class="user-item-info">
+                                <div class="user-item-name" title="proj engineer">proj engineer</div>
+                                <div class="user-item-role">Role: user</div>
+                                <div class="user-item-password" title="fcldc">Password: fcldc</div>
+                            </div>
+                            <div class="user-item-permissions">5/8 access</div>
+                            <div class="user-item-actions">
+                                <button class="edit-user-btn" onclick="AuthSystem.editUserPermissions('proj engineer')">Edit</button>
+                                <button class="delete-user-btn" onclick="AuthSystem.deleteUserConfirm('proj engineer')">Delete</button>
+                            </div>
+                        </div>
+                    
+                        <div class="user-item">
+                            <div class="user-item-info">
+                                <div class="user-item-name" title="projengr">projengr</div>
+                                <div class="user-item-role">Role: admin</div>
+                                <div class="user-item-password" title="level1">Password: level1</div>
+                            </div>
+                            <div class="user-item-permissions">8/8 access</div>
+                            <div class="user-item-actions">
+                                <button class="edit-user-btn" onclick="AuthSystem.editUserPermissions('projengr')">Edit</button>
+                                <button class="delete-user-btn" onclick="AuthSystem.deleteUserConfirm('projengr')">Delete</button>
+                            </div>
+                        </div>
                     </div>
             </div>
 
@@ -1728,7 +1741,7 @@ body:hover .hollywood {
                 <h3>Set User Permissions</h3>
                 <div class="admin-form">
                     <label for="permissionUserSelect">Select User</label>
-                    <select id="permissionUserSelect" style="width:100%;"><option value="">-- Select User --</option><option value="admin">admin</option><option value="user">user</option><option value="virtron">virtron</option><option value="mdc">mdc</option><option value="projengr">projengr</option><option value="jemmer">jemmer</option><option value="allysa">allysa</option><option value="julius">julius</option><option value="marrie">marrie</option><option value="jevic">jevic</option><option value="fcl">fcl</option><option value="hr">hr</option><option value="mz">mz</option><option value="jeffered">jeffered</option><option value="marjorie">marjorie</option><option value="warehouse">warehouse</option></select>
+                    <select id="permissionUserSelect" style="width:100%;"><option value="">-- Select User --</option><option value="admin">admin</option><option value="user">user</option><option value="virtron">virtron</option><option value="mdc">mdc</option><option value="jemmer">jemmer</option><option value="allysa">allysa</option><option value="julius">julius</option><option value="marrie">marrie</option><option value="jevic">jevic</option><option value="fcl">fcl</option><option value="hr">hr</option><option value="mz">mz</option><option value="jeffered">jeffered</option><option value="marjorie">marjorie</option><option value="warehouse">warehouse</option><option value="proj engineer">proj engineer</option><option value="projengr">projengr</option></select>
 
                     <h4 style="margin-top: 15px;">Sidebar Access Permissions</h4>
                     <div class="checkbox-group">
@@ -1835,23 +1848,23 @@ body:hover .hollywood {
         </div>
 
         <div class="section">
-            <span class="title reveal-line hollywood cinematic-main is-visible" data-text="FCLDC INTEGRATED SYSTEM">FCLDC INTEGRATED SYSTEM</span>
+            <span class="title reveal-line hollywood cinematic-main" data-text="FCLDC INTEGRATED SYSTEM">FCLDC INTEGRATED SYSTEM</span>
 
-            <p class="hollywood is-visible" data-text="“Professional project controls,”">“Professional project controls,”</p>
-            <p class="hollywood is-visible" data-text="“quality, and”">“quality, and”</p>
-	    <p class="hollywood is-visible" data-text="“personnel dashboard.”">“personnel dashboard.”</p>
+            <p class="hollywood" data-text="“Professional project controls,”">“Professional project controls,”</p>
+            <p class="hollywood" data-text="“quality, and”">“quality, and”</p>
+	    <p class="hollywood" data-text="“personnel dashboard.”">“personnel dashboard.”</p>
 
         </div>
 
         <div class="section">
-            <span class="title reveal-line hollywood cinematic-main is-visible" data-text="FULL MANAGEMENT CONTROL">FULL MANAGEMENT CONTROL</span>
+            <span class="title reveal-line hollywood cinematic-main" data-text="FULL MANAGEMENT CONTROL">FULL MANAGEMENT CONTROL</span>
 
-            <p class="hollywood is-visible" data-text="“Access evaluation forms, QS files, QAQC records.”">“Access evaluation forms, QS files, QAQC records.”</p>
-            <p class="hollywood is-visible" data-text="“construction inventory, project monitoring,”">“construction inventory, project monitoring,”</p>
-            <p class="hollywood is-visible" data-text="“and management review in one clean workspace.”">“and management review in one clean workspace.”</p>
+            <p class="hollywood" data-text="“Access evaluation forms, QS files, QAQC records.”">“Access evaluation forms, QS files, QAQC records.”</p>
+            <p class="hollywood" data-text="“construction inventory, project monitoring,”">“construction inventory, project monitoring,”</p>
+            <p class="hollywood" data-text="“and management review in one clean workspace.”">“and management review in one clean workspace.”</p>
         </div>
 
-        <p class="closing reveal-line is-visible">
+        <p class="closing reveal-line">
             “© 2026 FCLDC Integrated Management Solutions. All rights reserved.”
         </p>
 
@@ -1861,7 +1874,7 @@ body:hover .hollywood {
         <img src="vkbconnectpro.png" alt="VKB Connect Pro Logo">
     </div>
 
-<script id="fcldcAuthSeed" type="application/json">{"users":[{"username":"admin","password":"admin123","role":"admin","permissions":["personnel-eval","contracts","qs","qaqc","inventory","project-progress","management","settings"]},{"username":"user","password":"user123","role":"user","permissions":[]},{"username":"virtron","password":"101681","role":"admin","permissions":["personnel-eval","contracts","qs","qaqc","inventory","project-progress","management","settings"]},{"username":"mdc","password":"michael","role":"admin","permissions":["personnel-eval","contracts","qs","qaqc","inventory","project-progress","management","settings"]},{"username":"projengr","password":"level1","role":"admin","permissions":["qs","qaqc","inventory","project-progress","management","personnel-eval","contracts","settings"]},{"username":"jemmer","password":"qaqc1","role":"user","permissions":["personnel-eval","contracts","qs","qaqc","inventory","project-progress","management","settings"]},{"username":"allysa","password":"qaqc01","role":"user","permissions":["personnel-eval","contracts","qs","qaqc","inventory","project-progress","management","settings"]},{"username":"julius","password":"juliusx","role":"user","permissions":["contracts","qs","qaqc","inventory","project-progress","management","settings"]},{"username":"marrie","password":"marimar","role":"user","permissions":["contracts","qs","qaqc","inventory","project-progress","management","settings"]},{"username":"jevic","password":"pogi","role":"user","permissions":["contracts","qs","qaqc","inventory","project-progress","management","settings"]},{"username":"fcl","password":"ceo101","role":"user","permissions":["personnel-eval","contracts","qs","qaqc","inventory","project-progress","management","settings"]},{"username":"hr","password":"humanresources101","role":"user","permissions":["personnel-eval","contracts","qs","qaqc","inventory","project-progress","settings"]},{"username":"mz","password":"michaelfinance","role":"user","permissions":["personnel-eval","contracts","qs","qaqc","inventory","project-progress","management","settings"]},{"username":"jeffered","password":"theqs","role":"user","permissions":[]},{"username":"marjorie","password":"marjoliv","role":"admin","permissions":["personnel-eval","contracts","qs","qaqc","inventory","project-progress","management","settings"]},{"username":"warehouse","password":"donmiguel","role":"user","permissions":["qs","qaqc","inventory","project-progress"]}]}</script>
+<script id="fcldcAuthSeed" type="application/json">{"users":[{"username":"admin","password":"admin123","role":"admin","permissions":["personnel-eval","contracts","qs","qaqc","inventory","project-progress","management","settings"]},{"username":"user","password":"user123","role":"user","permissions":[]},{"username":"virtron","password":"101681","role":"admin","permissions":["personnel-eval","contracts","qs","qaqc","inventory","project-progress","management","settings"]},{"username":"mdc","password":"michael","role":"admin","permissions":["personnel-eval","contracts","qs","qaqc","inventory","project-progress","management","settings"]},{"username":"jemmer","password":"qaqc1","role":"user","permissions":["personnel-eval","contracts","qs","qaqc","inventory","project-progress","management","settings"]},{"username":"allysa","password":"qaqc01","role":"user","permissions":["personnel-eval","contracts","qs","qaqc","inventory","project-progress","management","settings"]},{"username":"julius","password":"juliusx","role":"user","permissions":["contracts","qs","qaqc","inventory","project-progress","management","settings"]},{"username":"marrie","password":"marimar","role":"user","permissions":["contracts","qs","qaqc","inventory","project-progress","management","settings"]},{"username":"jevic","password":"pogi","role":"user","permissions":["contracts","qs","qaqc","inventory","project-progress","management","settings"]},{"username":"fcl","password":"ceo101","role":"user","permissions":["personnel-eval","contracts","qs","qaqc","inventory","project-progress","management","settings"]},{"username":"hr","password":"humanresources101","role":"user","permissions":["personnel-eval","contracts","qs","qaqc","inventory","project-progress","settings"]},{"username":"mz","password":"michaelfinance","role":"user","permissions":["personnel-eval","contracts","qs","qaqc","inventory","project-progress","management","settings"]},{"username":"jeffered","password":"theqs","role":"user","permissions":["personnel-eval","contracts","qs","qaqc","inventory","project-progress","management","settings"]},{"username":"marjorie","password":"marjoliv","role":"admin","permissions":["personnel-eval","contracts","qs","qaqc","inventory","project-progress","management","settings"]},{"username":"warehouse","password":"donmiguel","role":"user","permissions":["qs","qaqc","inventory","project-progress"]},{"username":"proj engineer","password":"fcldc","role":"user","permissions":["qs","qaqc","inventory","project-progress","management"]},{"username":"projengr","password":"level1","role":"admin","permissions":["qs","qaqc","inventory","project-progress","management","personnel-eval","contracts","settings"]}]}</script>
 
     <script>
         // ===== AUTHENTICATION SYSTEM =====
