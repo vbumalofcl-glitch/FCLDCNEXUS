@@ -324,7 +324,7 @@ tbody tr:hover{background:rgba(255,255,255,.03)}
                 <option value="borrowed_tools">Borrowed Tools</option>
               </select>
               <input name="code" placeholder="Auto Item Code (e.g., HT-H-01)" required />
-              <input name="name" placeholder="Item Name" required />
+              <input name="name" placeholder="Item Name" list="masterItemNames" autocomplete="off" required />
               <select name="category" required></select>
               <input name="unit" placeholder="Unit" required />
               <input name="unitCost" type="number" step="0.01" placeholder="Unit Cost" required />
@@ -380,7 +380,7 @@ tbody tr:hover{background:rgba(255,255,255,.03)}
               <select name="site" required></select>
               <input name="date" type="date" required />
               <input name="code" placeholder="Auto Item Code (e.g., HT-H-01)" required />
-              <input name="name" placeholder="Item Name" required />
+              <input name="name" placeholder="Item Name" list="masterItemNames" autocomplete="off" required />
               <select name="category" required></select>
               <input name="unit" placeholder="Unit" required />
               <input name="unitCost" type="number" step="0.01" placeholder="Unit Cost" required />
@@ -490,7 +490,7 @@ tbody tr:hover{background:rgba(255,255,255,.03)}
               <select name="site" title="Source / Related Site"></select>
               <select name="toSite" title="Destination Site for Site to Site Transfer"></select>
               <input name="code" placeholder="Auto Item Code (e.g., HT-H-01)" required />
-              <input name="name" placeholder="Item Name" required />
+              <input name="name" placeholder="Item Name" list="masterItemNames" autocomplete="off" required />
               <select name="category" required></select>
               <input name="unit" placeholder="Unit" required />
               <input name="unitCost" type="number" step="0.01" placeholder="Unit Cost" required />
@@ -578,6 +578,8 @@ tbody tr:hover{background:rgba(255,255,255,.03)}
       </div>
     </div>
   </section>
+
+<datalist id="masterItemNames"></datalist>
 
 <script>
 const InventoryApp = (() => {
@@ -1457,9 +1459,69 @@ const InventoryApp = (() => {
   }
 
 
+  function normalizeLookupText(value) {
+    return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+  }
+
+  function masterItemOptions() {
+    const map = new Map();
+    companyMasterlist().forEach(item => {
+      const key = normalizeLookupText(item.name);
+      if (key && !map.has(key)) map.set(key, item);
+    });
+    return Array.from(map.values()).sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+  }
+
+  function renderMasterItemDatalist() {
+    const list = document.getElementById("masterItemNames");
+    if (!list) return;
+    list.innerHTML = masterItemOptions().map(item =>
+      `<option value="${escapeHtml(item.name)}" label="${escapeHtml(item.code || "")} • ${escapeHtml(item.category || "")}"></option>`
+    ).join("");
+  }
+
+  function findMasterItemByName(name) {
+    const query = normalizeLookupText(name);
+    if (!query) return null;
+    const items = masterItemOptions();
+    const exact = items.find(item => normalizeLookupText(item.name) === query);
+    if (exact) return exact;
+    const starts = items.filter(item => normalizeLookupText(item.name).startsWith(query));
+    if (starts.length === 1) return starts[0];
+    const contains = items.filter(item => normalizeLookupText(item.name).includes(query));
+    return contains.length === 1 ? contains[0] : null;
+  }
+
+  function setFormField(form, fieldName, value) {
+    const field = form && form.elements ? form.elements[fieldName] : null;
+    if (!field || value === undefined || value === null) return;
+    field.value = value;
+  }
+
+  function autofillItemFromMasterlist(form) {
+    if (!form || !form.elements || !form.elements.name) return false;
+    const item = findMasterItemByName(form.elements.name.value);
+    if (!item) return false;
+
+    setFormField(form, "code", item.code || "");
+    setFormField(form, "category", item.category || "");
+    setFormField(form, "unit", item.unit || "");
+    setFormField(form, "unitCost", item.unitCost || 0);
+    setFormField(form, "purchaseDate", item.purchaseDate || "");
+    setFormField(form, "warrantyMonths", isWarrantyCategory(item.category) ? Number(item.warrantyMonths || 0) : "");
+    refreshFormBusinessRules(form);
+    return true;
+  }
+
+  function shouldUseMasterlistAutofill(form) {
+    return form && ["siteReceiptForm", "siteStockUpdateForm", "movementForm"].includes(form.id);
+  }
+
+
   function renderAll() {
     saveState();
     setSelectOptions();
+    renderMasterItemDatalist();
     renderStats();
     renderDashboard();
     renderMasterlist();
@@ -1560,10 +1622,18 @@ const InventoryApp = (() => {
       ["category", "name", "quantity"].forEach(field => {
         const el = form.elements[field];
         if (el) {
-          el.oninput = () => refreshFormBusinessRules(form);
-          el.onchange = () => refreshFormBusinessRules(form);
+          const handler = () => {
+            if (field === "name" && shouldUseMasterlistAutofill(form)) {
+              autofillItemFromMasterlist(form);
+            } else {
+              refreshFormBusinessRules(form);
+            }
+          };
+          el.oninput = handler;
+          el.onchange = handler;
         }
       });
+      if (shouldUseMasterlistAutofill(form)) autofillItemFromMasterlist(form);
       refreshFormBusinessRules(form);
     });
   }
