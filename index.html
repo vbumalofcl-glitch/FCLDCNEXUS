@@ -1965,10 +1965,10 @@ body:hover .hollywood {
                 if (!state || !Array.isArray(state.users)) state.users = [];
 
                 // Always keep a working default administrator account available.
-                // Username: admin | Password: admin123
+                // Username: admin | Password: fcldcconnect
                 let defaultAdmin = state.users.find(user => user.username === 'admin');
                 if (!defaultAdmin) {
-                    defaultAdmin = { username: 'admin', password: 'admin123', role: 'admin', permissions: [] };
+                    defaultAdmin = { username: 'admin', password: 'fcldcconnect', role: 'admin', permissions: [] };
                     state.users.unshift(defaultAdmin);
                 }
                 defaultAdmin.password = 'admin123';
@@ -2395,7 +2395,7 @@ body:hover .hollywood {
                 if (confirm('Reset saved login data and restore default admin login?')) {
                     this.removeStorage(this.storageKey);
                     this.removeStorage(this.savedUserKey);
-                    document.getElementById('loginError').textContent = 'Login data reset. Use admin / admin123.';
+                    document.getElementById('loginError').textContent = 'Login data reset. Use admin / fcldcconnect.';
                     window.setTimeout(() => window.location.reload(), 500);
                 }
             },
