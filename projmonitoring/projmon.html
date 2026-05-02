@@ -410,11 +410,12 @@
       background: transparent; color: #ffffff; font-weight: 700;
     }
     .item-code-cell {
-      width: 52px; min-width: 52px; max-width: 52px; text-align: center;
+      width: 78px; min-width: 78px; max-width: 78px; text-align: center;
       padding-left: 3px; padding-right: 3px; white-space: nowrap; vertical-align: top;
     }
     .level-sub { padding-left: 14px; font-weight: 700; }
     .level-subsub { padding-left: 30px; }
+    .level-subsubsub { padding-left: 46px; }
     .name-cell { display: flex; align-items: center; gap: 4px; width: 100%; }
     .name-input-wrap { flex: 1; min-width: 0; width: 100%; }
     .name-input-wrap input {
@@ -769,8 +770,8 @@
                   <table>
                     <thead>
                       <tr>
-                        <th style="width:52px;">WBS</th>
-                        <th style="width:250px;">Item / Sub-Item / Sub-Sub-Item</th>
+                        <th style="width:78px;">WBS</th>
+                        <th style="width:280px;">Item / Sub-Item / Sub-Sub-Item / Sub-Sub-Sub-Item</th>
                         <th style="width:80px;">Qty</th>
                         <th class="unit-col" style="width:80px;">Unit</th>
                         <th class="cost-col" style="width:125px;">Labor/Equip't Cost</th>
@@ -791,7 +792,7 @@
                 <div class="section-head"><h3>BOQ Summary</h3></div>
                 <div class="summary-list">
                   <div class="summary-row"><span>Total Items</span><strong id="metricItems">0</strong></div>
-                  <div class="summary-row"><span>Sub-Items / Sub-Sub-Items</span><strong id="metricSubItems">0 / 0</strong></div>
+                  <div class="summary-row"><span>Sub / Sub-Sub / Sub-Sub-Sub</span><strong id="metricSubItems">0 / 0 / 0</strong></div>
                   <div class="summary-row"><span>Total Labor/Equip't Cost</span><strong id="sumLabor">₱ 0.00</strong></div>
                   <div class="summary-row"><span>Total Mat'l Cost</span><strong id="sumMaterial">₱ 0.00</strong></div>
                   <div class="summary-row"><span>Overall Grand Total</span><strong id="sumGrand">₱ 0.00</strong></div>
@@ -1028,8 +1029,12 @@
     function escapeHtml(str) {
       return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;').replace(/'/g, '&#039;');
     }
+    function formatWBS(...parts) {
+      return parts.map(part => String(Number(part || 0)).padStart(2, '0')).join('.');
+    }
 
-    function createSubSubItem(name = '') { return { id: uid(), name, qty: 0, unit: '', laborUnitCost: 0, materialUnitCost: 0 }; }
+    function createSubSubSubItem(name = '') { return { id: uid(), name, qty: 0, unit: '', laborUnitCost: 0, materialUnitCost: 0 }; }
+    function createSubSubItem(name = '') { return { id: uid(), name, qty: 0, unit: '', laborUnitCost: 0, materialUnitCost: 0, expanded: true, subSubSubItems: [] }; }
     function createSubItem(name = '') { return { id: uid(), name, qty: 0, unit: '', laborUnitCost: 0, materialUnitCost: 0, expanded: true, subSubItems: [] }; }
     function createItem(name = '') { return { id: uid(), name, expanded: true, scheduleExpanded: true, subItems: [createSubItem('Sub-Item 1')] }; }
     function createProject(name, code, location, status, description = '', owner = '', startDate = '') {
@@ -1057,6 +1062,10 @@
           item.subItems.forEach(sub => {
             if (typeof sub.expanded !== 'boolean') sub.expanded = true;
             if (!Array.isArray(sub.subSubItems)) sub.subSubItems = [];
+            sub.subSubItems.forEach(child => {
+              if (typeof child.expanded !== 'boolean') child.expanded = true;
+              if (!Array.isArray(child.subSubSubItems)) child.subSubSubItems = [];
+            });
           });
         });
       });
@@ -1071,10 +1080,25 @@
       const grandTotal = totalLabor + totalMaterial;
       return { totalLabor, totalMaterial, grandTotal };
     }
+    function calcSubSubItem(child) {
+      const own = calcBaseCost(child);
+      const childTotals = (child.subSubSubItems || []).reduce((acc, grandchild) => {
+        const c = calcBaseCost(grandchild);
+        acc.totalLabor += c.totalLabor;
+        acc.totalMaterial += c.totalMaterial;
+        acc.grandTotal += c.grandTotal;
+        return acc;
+      }, { totalLabor: 0, totalMaterial: 0, grandTotal: 0 });
+      return {
+        totalLabor: own.totalLabor + childTotals.totalLabor,
+        totalMaterial: own.totalMaterial + childTotals.totalMaterial,
+        grandTotal: own.grandTotal + childTotals.grandTotal
+      };
+    }
     function calcSubItem(sub) {
       const own = calcBaseCost(sub);
       const childTotals = (sub.subSubItems || []).reduce((acc, child) => {
-        const c = calcBaseCost(child);
+        const c = calcSubSubItem(child);
         acc.totalLabor += c.totalLabor;
         acc.totalMaterial += c.totalMaterial;
         acc.grandTotal += c.grandTotal;
@@ -1099,9 +1123,12 @@
       return project.boq.reduce((acc, item) => {
         const t = calcItem(item);
         acc.totalLabor += t.totalLabor; acc.totalMaterial += t.totalMaterial; acc.totalGrand += t.grandTotal;
-        acc.totalItems += 1; acc.totalSubItems += item.subItems.length; acc.totalSubSubItems += item.subItems.reduce((sum, sub) => sum + sub.subSubItems.length, 0);
+        acc.totalItems += 1;
+        acc.totalSubItems += item.subItems.length;
+        acc.totalSubSubItems += item.subItems.reduce((sum, sub) => sum + sub.subSubItems.length, 0);
+        acc.totalSubSubSubItems += item.subItems.reduce((sum, sub) => sum + sub.subSubItems.reduce((childSum, child) => childSum + (child.subSubSubItems || []).length, 0), 0);
         return acc;
-      }, { totalLabor: 0, totalMaterial: 0, totalGrand: 0, totalItems: 0, totalSubItems: 0, totalSubSubItems: 0 });
+      }, { totalLabor: 0, totalMaterial: 0, totalGrand: 0, totalItems: 0, totalSubItems: 0, totalSubSubItems: 0, totalSubSubSubItems: 0 });
     }
     function capitalize(text) { return text.charAt(0).toUpperCase() + text.slice(1); }
 
@@ -1409,57 +1436,39 @@
       lines.push(header.join(','));
       project.boq.forEach((item, i) => {
         const itemTotals = calcItem(item);
-        const wbsItem = `${i+1}.0.0`;
+        const wbsItem = formatWBS(i + 1, 0, 0, 0);
         lines.push([
-          csvEscape(project.code || ''),
-          csvEscape(project.name || ''),
-          'Item',
-          csvEscape(wbsItem),
-          csvEscape(item.name || ''),
-          '', '', '', '',
-          Number(itemTotals.totalLabor).toFixed(2),
-          Number(itemTotals.totalMaterial).toFixed(2),
-          Number(itemTotals.grandTotal).toFixed(2),
-          csvEscape(item.lastUpdated || '')
+          csvEscape(project.code || ''), csvEscape(project.name || ''), 'Item', csvEscape(wbsItem), csvEscape(item.name || ''), '', '', '', '',
+          Number(itemTotals.totalLabor).toFixed(2), Number(itemTotals.totalMaterial).toFixed(2), Number(itemTotals.grandTotal).toFixed(2), csvEscape(item.lastUpdated || '')
         ].join(','));
 
         item.subItems.forEach((sub, j) => {
           const subTotals = calcSubItem(sub);
-          const wbsSub = `${i+1}.${j+1}.0`;
+          const wbsSub = formatWBS(i + 1, j + 1, 0, 0);
           lines.push([
-            csvEscape(project.code || ''),
-            csvEscape(project.name || ''),
-            'Sub-Item',
-            csvEscape(wbsSub),
-            csvEscape(sub.name || ''),
-            Number(sub.qty || 0).toFixed(2),
-            csvEscape(sub.unit || ''),
-            Number(sub.laborUnitCost || 0).toFixed(2),
-            Number(sub.materialUnitCost || 0).toFixed(2),
-            Number(subTotals.totalLabor).toFixed(2),
-            Number(subTotals.totalMaterial).toFixed(2),
-            Number(subTotals.grandTotal).toFixed(2),
-            csvEscape(sub.lastUpdated || '')
+            csvEscape(project.code || ''), csvEscape(project.name || ''), 'Sub-Item', csvEscape(wbsSub), csvEscape(sub.name || ''),
+            Number(sub.qty || 0).toFixed(2), csvEscape(sub.unit || ''), Number(sub.laborUnitCost || 0).toFixed(2), Number(sub.materialUnitCost || 0).toFixed(2),
+            Number(subTotals.totalLabor).toFixed(2), Number(subTotals.totalMaterial).toFixed(2), Number(subTotals.grandTotal).toFixed(2), csvEscape(sub.lastUpdated || '')
           ].join(','));
 
           (sub.subSubItems || []).forEach((child, k) => {
-            const childTotals = calcBaseCost(child);
-            const wbsChild = `${i+1}.${j+1}.${k+1}`;
+            const childTotals = calcSubSubItem(child);
+            const wbsChild = formatWBS(i + 1, j + 1, k + 1, 0);
             lines.push([
-              csvEscape(project.code || ''),
-              csvEscape(project.name || ''),
-              'Sub-Sub-Item',
-              csvEscape(wbsChild),
-              csvEscape(child.name || ''),
-              Number(child.qty || 0).toFixed(2),
-              csvEscape(child.unit || ''),
-              Number(child.laborUnitCost || 0).toFixed(2),
-              Number(child.materialUnitCost || 0).toFixed(2),
-              Number(childTotals.totalLabor).toFixed(2),
-              Number(childTotals.totalMaterial).toFixed(2),
-              Number(childTotals.grandTotal).toFixed(2),
-              csvEscape(child.lastUpdated || '')
+              csvEscape(project.code || ''), csvEscape(project.name || ''), 'Sub-Sub-Item', csvEscape(wbsChild), csvEscape(child.name || ''),
+              Number(child.qty || 0).toFixed(2), csvEscape(child.unit || ''), Number(child.laborUnitCost || 0).toFixed(2), Number(child.materialUnitCost || 0).toFixed(2),
+              Number(childTotals.totalLabor).toFixed(2), Number(childTotals.totalMaterial).toFixed(2), Number(childTotals.grandTotal).toFixed(2), csvEscape(child.lastUpdated || '')
             ].join(','));
+
+            (child.subSubSubItems || []).forEach((grandchild, l) => {
+              const grandchildTotals = calcBaseCost(grandchild);
+              const wbsGrandchild = formatWBS(i + 1, j + 1, k + 1, l + 1);
+              lines.push([
+                csvEscape(project.code || ''), csvEscape(project.name || ''), 'Sub-Sub-Sub-Item', csvEscape(wbsGrandchild), csvEscape(grandchild.name || ''),
+                Number(grandchild.qty || 0).toFixed(2), csvEscape(grandchild.unit || ''), Number(grandchild.laborUnitCost || 0).toFixed(2), Number(grandchild.materialUnitCost || 0).toFixed(2),
+                Number(grandchildTotals.totalLabor).toFixed(2), Number(grandchildTotals.totalMaterial).toFixed(2), Number(grandchildTotals.grandTotal).toFixed(2), csvEscape(grandchild.lastUpdated || '')
+              ].join(','));
+            });
           });
         });
       });
@@ -1554,7 +1563,7 @@
       project.boq.forEach((item, i) => {
         const itemTotals = calcItem(item);
         rows.push({
-          Level: 'Item', WBS: `${i + 1}.0.0`, Name: item.name || '', Qty: '', Unit: '',
+          Level: 'Item', WBS: formatWBS(i + 1, 0, 0, 0), Name: item.name || '', Qty: '', Unit: '',
           "Labor/Equip't Cost": '', "Mat'l Total Cost": '',
           "Total Labor/Equip't Cost": itemTotals.totalLabor, "Total Mat'l Cost": itemTotals.totalMaterial,
           'Grand Total Cost': itemTotals.grandTotal
@@ -1562,18 +1571,27 @@
         item.subItems.forEach((sub, j) => {
           const subTotals = calcSubItem(sub);
           rows.push({
-            Level: 'Sub-Item', WBS: `${i + 1}.${j + 1}.0`, Name: sub.name || '', Qty: Number(sub.qty || 0), Unit: sub.unit || '',
+            Level: 'Sub-Item', WBS: formatWBS(i + 1, j + 1, 0, 0), Name: sub.name || '', Qty: Number(sub.qty || 0), Unit: sub.unit || '',
             "Labor/Equip't Cost": Number(sub.laborUnitCost || 0), "Mat'l Total Cost": Number(sub.materialUnitCost || 0),
             "Total Labor/Equip't Cost": subTotals.totalLabor, "Total Mat'l Cost": subTotals.totalMaterial,
             'Grand Total Cost': subTotals.grandTotal
           });
           (sub.subSubItems || []).forEach((child, k) => {
-            const childTotals = calcBaseCost(child);
+            const childTotals = calcSubSubItem(child);
             rows.push({
-              Level: 'Sub-Sub-Item', WBS: `${i + 1}.${j + 1}.${k + 1}`, Name: child.name || '', Qty: Number(child.qty || 0), Unit: child.unit || '',
+              Level: 'Sub-Sub-Item', WBS: formatWBS(i + 1, j + 1, k + 1, 0), Name: child.name || '', Qty: Number(child.qty || 0), Unit: child.unit || '',
               "Labor/Equip't Cost": Number(child.laborUnitCost || 0), "Mat'l Total Cost": Number(child.materialUnitCost || 0),
               "Total Labor/Equip't Cost": childTotals.totalLabor, "Total Mat'l Cost": childTotals.totalMaterial,
               'Grand Total Cost': childTotals.grandTotal
+            });
+            (child.subSubSubItems || []).forEach((grandchild, l) => {
+              const grandchildTotals = calcBaseCost(grandchild);
+              rows.push({
+                Level: 'Sub-Sub-Sub-Item', WBS: formatWBS(i + 1, j + 1, k + 1, l + 1), Name: grandchild.name || '', Qty: Number(grandchild.qty || 0), Unit: grandchild.unit || '',
+                "Labor/Equip't Cost": Number(grandchild.laborUnitCost || 0), "Mat'l Total Cost": Number(grandchild.materialUnitCost || 0),
+                "Total Labor/Equip't Cost": grandchildTotals.totalLabor, "Total Mat'l Cost": grandchildTotals.totalMaterial,
+                'Grand Total Cost': grandchildTotals.grandTotal
+              });
             });
           });
         });
@@ -1728,33 +1746,43 @@
       if (!rows.length) return alert('No rows found in Excel file.');
       if (!confirm('Importing BOQ Excel will replace the current Bill of Quantities for this project. Continue?')) return;
       const items = [];
-      let currentItem = null, currentSub = null;
+      let currentItem = null, currentSub = null, currentSubSub = null;
       rows.forEach((r) => {
         const level = String(r.Level || '').toLowerCase();
         const wbs = String(r.WBS || '');
         const parts = wbs.split('.').map(n => Number(n || 0));
-        const name = String(r.Name || r['Item / Sub-Item / Sub-Sub-Item'] || '').trim();
+        while (parts.length < 4) parts.push(0);
+        const name = String(r.Name || r['Item / Sub-Item / Sub-Sub-Item / Sub-Sub-Sub-Item'] || r['Item / Sub-Item / Sub-Sub-Item'] || '').trim();
         const qty = parseNumber(r.Qty);
         const unit = String(r.Unit || '').trim();
         const labor = parseNumber(r["Labor/Equip't Cost"] || r.LaborUnitCost || r['Labor Unit Cost']);
         const material = parseNumber(r["Mat'l Total Cost"] || r.MaterialUnitCost || r["Mat'l/Equip't Unit Cost"]);
-        const isItem = level.includes('item') && !level.includes('sub') || (parts[1] === 0 && parts[2] === 0);
-        const isSubSub = level.includes('sub-sub') || (parts[2] > 0);
-        const isSub = !isItem && !isSubSub;
+        const isSubSubSub = level.includes('sub-sub-sub') || parts[3] > 0;
+        const isItem = !isSubSubSub && ((level.includes('item') && !level.includes('sub')) || (parts[1] === 0 && parts[2] === 0 && parts[3] === 0));
+        const isSubSub = !isSubSubSub && (level.includes('sub-sub') || (parts[2] > 0 && parts[3] === 0));
+        const isSub = !isItem && !isSubSub && !isSubSubSub;
         if (isItem) {
           currentItem = createItem(name || `Item ${items.length + 1}`);
           currentItem.subItems = [];
           items.push(currentItem);
           currentSub = null;
+          currentSubSub = null;
         } else if (isSub) {
           if (!currentItem) { currentItem = createItem('Item 1'); currentItem.subItems = []; items.push(currentItem); }
           currentSub = createSubItem(name || `Sub-Item ${currentItem.subItems.length + 1}`);
           Object.assign(currentSub, { qty, unit, laborUnitCost: labor, materialUnitCost: material, subSubItems: [] });
           currentItem.subItems.push(currentSub);
+          currentSubSub = null;
         } else if (isSubSub) {
           if (!currentItem) { currentItem = createItem('Item 1'); currentItem.subItems = []; items.push(currentItem); }
           if (!currentSub) { currentSub = createSubItem('Sub-Item 1'); currentSub.subSubItems = []; currentItem.subItems.push(currentSub); }
-          currentSub.subSubItems.push({ ...createSubSubItem(name || `Sub-Sub-Item ${currentSub.subSubItems.length + 1}`), qty, unit, laborUnitCost: labor, materialUnitCost: material });
+          currentSubSub = { ...createSubSubItem(name || `Sub-Sub-Item ${currentSub.subSubItems.length + 1}`), qty, unit, laborUnitCost: labor, materialUnitCost: material, subSubSubItems: [] };
+          currentSub.subSubItems.push(currentSubSub);
+        } else if (isSubSubSub) {
+          if (!currentItem) { currentItem = createItem('Item 1'); currentItem.subItems = []; items.push(currentItem); }
+          if (!currentSub) { currentSub = createSubItem('Sub-Item 1'); currentSub.subSubItems = []; currentItem.subItems.push(currentSub); }
+          if (!currentSubSub) { currentSubSub = createSubSubItem('Sub-Sub-Item 1'); currentSub.subSubItems.push(currentSubSub); }
+          currentSubSub.subSubSubItems.push({ ...createSubSubSubItem(name || `Sub-Sub-Sub-Item ${currentSubSub.subSubSubItems.length + 1}`), qty, unit, laborUnitCost: labor, materialUnitCost: material });
         }
       });
       items.forEach(item => { if (!item.subItems.length) item.subItems.push(createSubItem('Sub-Item 1')); });
@@ -1965,11 +1993,25 @@
       child[field] = ['qty', 'laborUnitCost', 'materialUnitCost'].includes(field) ? parseNumber(value) : value;
       renderWorkspace();
     }
+    function updateSubSubSubItem(itemId, subId, childId, grandchildId, field, value) {
+      const item = getCurrentItems().find(i => i.id === itemId); if (!item) return;
+      const sub = item.subItems.find(s => s.id === subId); if (!sub) return;
+      const child = sub.subSubItems.find(c => c.id === childId); if (!child) return;
+      const grandchild = child.subSubSubItems.find(g => g.id === grandchildId); if (!grandchild) return;
+      grandchild[field] = ['qty', 'laborUnitCost', 'materialUnitCost'].includes(field) ? parseNumber(value) : value;
+      renderWorkspace();
+    }
     function toggleItem(itemId) { const item = getCurrentItems().find(i => i.id === itemId); if (!item) return; item.expanded = !item.expanded; renderWorkspace(); }
     function toggleSubItem(itemId, subId) {
       const item = getCurrentItems().find(i => i.id === itemId); if (!item) return;
       const sub = item.subItems.find(s => s.id === subId); if (!sub) return;
       sub.expanded = !sub.expanded; renderWorkspace();
+    }
+    function toggleSubSubItem(itemId, subId, childId) {
+      const item = getCurrentItems().find(i => i.id === itemId); if (!item) return;
+      const sub = item.subItems.find(s => s.id === subId); if (!sub) return;
+      const child = sub.subSubItems.find(c => c.id === childId); if (!child) return;
+      child.expanded = !child.expanded; renderWorkspace();
     }
     function addItem() { const project = getCurrentProject(); if (!project) return; project.boq.push(createItem(`Item ${project.boq.length + 1}`)); renderWorkspace(); }
     function removeItem(itemId) {
@@ -1996,6 +2038,22 @@
       const item = getCurrentItems().find(i => i.id === itemId); if (!item) return;
       const sub = item.subItems.find(s => s.id === subId); if (!sub) return;
       sub.subSubItems = sub.subSubItems.filter(c => c.id !== childId); renderWorkspace();
+    }
+    function addSubSubSubItem(itemId, subId, childId) {
+      const item = getCurrentItems().find(i => i.id === itemId); if (!item) return;
+      const sub = item.subItems.find(s => s.id === subId); if (!sub) return;
+      const child = sub.subSubItems.find(c => c.id === childId); if (!child) return;
+      item.expanded = true; sub.expanded = true; child.expanded = true;
+      if (!Array.isArray(child.subSubSubItems)) child.subSubSubItems = [];
+      child.subSubSubItems.push(createSubSubSubItem(`Sub-Sub-Sub-Item ${child.subSubSubItems.length + 1}`));
+      renderWorkspace();
+    }
+    function removeSubSubSubItem(itemId, subId, childId, grandchildId) {
+      if (!confirm('Delete this sub-sub-sub-item row?')) return;
+      const item = getCurrentItems().find(i => i.id === itemId); if (!item) return;
+      const sub = item.subItems.find(s => s.id === subId); if (!sub) return;
+      const child = sub.subSubItems.find(c => c.id === childId); if (!child) return;
+      child.subSubSubItems = child.subSubSubItems.filter(g => g.id !== grandchildId); renderWorkspace();
     }
 
     function addDays(dateStr, days) {
@@ -2034,7 +2092,7 @@
             key: subKey,
             itemId: sub.id,
             parentItemId: item.id,
-            wbs: `${itemIndex + 1}.${subIndex + 1}.0`,
+            wbs: formatWBS(itemIndex + 1, subIndex + 1, 0, 0),
             level: 'sub',
             name: sub.name || `Sub-Item ${subIndex + 1}`,
             boqCost: subTotals.grandTotal,
@@ -2065,7 +2123,7 @@
           key: itemKey,
           itemId: item.id,
           parentItemId: null,
-          wbs: `${itemIndex + 1}.0.0`,
+          wbs: formatWBS(itemIndex + 1, 0, 0, 0),
           level: 'item',
           name: item.name || `Item ${itemIndex + 1}`,
           boqCost: itemTotals.grandTotal,
@@ -2506,6 +2564,7 @@
       if (!row) return false;
       if (row.type === 'item') return project.tracking.some(child => child.parentItemId === row.itemId && child.type === 'sub');
       if (row.type === 'sub') return project.tracking.some(child => child.parentSubId === row.itemId && child.type === 'subsub');
+      if (row.type === 'subsub') return project.tracking.some(child => child.parentSubSubId === row.itemId && child.type === 'subsubsub');
       return false;
     }
     function buildTrackingFromBOQ(project) {
@@ -2528,13 +2587,22 @@
             name: sub.name || `Sub-Item ${subIndex + 1}`, boqLabor: subTotals.totalLabor, boqMaterial: subTotals.totalMaterial
           }));
           (sub.subSubItems || []).forEach((child, childIndex) => {
-            const childTotals = calcBaseCost(child);
+            const childTotals = calcSubSubItem(child);
             const childKey = `subsub:${child.id}`;
             const childPrev = existingMap.get(childKey) || {};
             rows.push(buildTrackingRow(childPrev, {
               key: childKey, type: 'subsub', itemId: child.id, parentItemId: item.id, parentSubId: sub.id,
               name: child.name || `Sub-Sub-Item ${childIndex + 1}`, boqLabor: childTotals.totalLabor, boqMaterial: childTotals.totalMaterial
             }));
+            (child.subSubSubItems || []).forEach((grandchild, grandchildIndex) => {
+              const grandchildTotals = calcBaseCost(grandchild);
+              const grandchildKey = `subsubsub:${grandchild.id}`;
+              const grandchildPrev = existingMap.get(grandchildKey) || {};
+              rows.push(buildTrackingRow(grandchildPrev, {
+                key: grandchildKey, type: 'subsubsub', itemId: grandchild.id, parentItemId: item.id, parentSubId: sub.id, parentSubSubId: child.id,
+                name: grandchild.name || `Sub-Sub-Sub-Item ${grandchildIndex + 1}`, boqLabor: grandchildTotals.totalLabor, boqMaterial: grandchildTotals.totalMaterial
+              }));
+            });
           });
         });
       });
@@ -2682,6 +2750,14 @@
       row.trackingExpanded = row.trackingExpanded === false ? true : false;
       renderWorkspace();
     }
+    function toggleTrackingSubSubItem(parentSubId, parentSubSubId) {
+      const project = getCurrentProject();
+      if (!project) return;
+      const row = project.tracking.find(r => r.type === 'subsub' && r.parentSubId === parentSubId && r.itemId === parentSubSubId);
+      if (!row) return;
+      row.trackingExpanded = row.trackingExpanded === false ? true : false;
+      renderWorkspace();
+    }
     function updateTracking(project) {
       buildTrackingFromBOQ(project);
       const laborBody = document.getElementById('laborTrackingBody');
@@ -2692,9 +2768,14 @@
         const isItem = row.type === 'item';
         const isSub = row.type === 'sub';
         const isSubSub = row.type === 'subsub';
+        const isSubSubSub = row.type === 'subsubsub';
         const ownerItem = isItem ? project.boq.find(i => i.id === row.itemId) : project.boq.find(i => i.id === row.parentItemId);
         const ownerSub = isSub ? row : project.tracking.find(r => r.type === 'sub' && r.itemId === row.parentSubId);
-        const showRow = isItem || (isSub && ownerItem && ownerItem.scheduleExpanded !== false) || (isSubSub && ownerItem && ownerItem.scheduleExpanded !== false && ownerSub && ownerSub.trackingExpanded !== false);
+        const ownerSubSub = isSubSubSub ? project.tracking.find(r => r.type === 'subsub' && r.itemId === row.parentSubSubId) : null;
+        const showRow = isItem
+          || (isSub && ownerItem && ownerItem.scheduleExpanded !== false)
+          || (isSubSub && ownerItem && ownerItem.scheduleExpanded !== false && ownerSub && ownerSub.trackingExpanded !== false)
+          || (isSubSubSub && ownerItem && ownerItem.scheduleExpanded !== false && ownerSub && ownerSub.trackingExpanded !== false && ownerSubSub && ownerSubSub.trackingExpanded !== false);
         if (!showRow) return;
         const hasChildren = trackingRowHasChildren(project, row);
         const canOpenActualCost = !hasChildren;
@@ -2719,7 +2800,7 @@
           <td class="cost-col"><input type="text" inputmode="decimal" value="${peso(row.actualLabor)}" onchange="updateTrackingField(${index}, 'actualLabor', this.value); this.value = peso(this.value);"></td>
           <td class="cost-col${varianceClass(laborVariance)}">${peso(laborVariance)}</td>
           <td>${row.lastUpdated || ''}</td>` : `
-          <td class="${workItemClass}" ${laborOpen} style="padding-left:42px; font-style:italic;">${escapeHtml(row.name)}</td>
+          <td class="${workItemClass}" ${laborOpen} style="padding-left:${isSubSubSub ? '62px' : '42px'}; font-style:italic;">${isSubSub && project.tracking.some(r => r.type === 'subsubsub' && r.parentSubSubId === row.itemId) ? `<button class="toggle-btn" onclick="toggleTrackingSubSubItem('${row.parentSubId}', '${row.itemId}')" title="${row.trackingExpanded === false ? 'Expand' : 'Collapse'}">${row.trackingExpanded === false ? '▸' : '▾'}</button> ` : ''}${escapeHtml(row.name)}</td>
           <td class="cost-col">${peso(row.boqLabor)}</td>
           <td class="cost-col">${peso(row.boqLabor)}</td>
           <td class="cost-col"><input type="text" inputmode="decimal" value="${peso(row.actualLabor)}" onchange="updateTrackingField(${index}, 'actualLabor', this.value); this.value = peso(this.value);"></td>
@@ -2742,7 +2823,7 @@
           <td class="cost-col"><input type="text" inputmode="decimal" value="${peso(row.actualMaterial)}" onchange="updateTrackingField(${index}, 'actualMaterial', this.value); this.value = peso(this.value);"></td>
           <td class="cost-col${varianceClass(materialVariance)}">${peso(materialVariance)}</td>
           <td>${row.lastUpdated || ''}</td>` : `
-          <td class="${workItemClass}" ${materialOpen} style="padding-left:42px; font-style:italic;">${escapeHtml(row.name)}</td>
+          <td class="${workItemClass}" ${materialOpen} style="padding-left:${isSubSubSub ? '62px' : '42px'}; font-style:italic;">${isSubSub && project.tracking.some(r => r.type === 'subsubsub' && r.parentSubSubId === row.itemId) ? `<button class="toggle-btn" onclick="toggleTrackingSubSubItem('${row.parentSubId}', '${row.itemId}')" title="${row.trackingExpanded === false ? 'Expand' : 'Collapse'}">${row.trackingExpanded === false ? '▸' : '▾'}</button> ` : ''}${escapeHtml(row.name)}</td>
           <td class="cost-col">${peso(row.boqMaterial)}</td>
           <td class="cost-col">${peso(row.boqMaterial)}</td>
           <td class="cost-col"><input type="text" inputmode="decimal" value="${peso(row.actualMaterial)}" onchange="updateTrackingField(${index}, 'actualMaterial', this.value); this.value = peso(this.value);"></td>
@@ -2767,13 +2848,13 @@
       document.getElementById('workspaceMetrics').innerHTML = `
         <div class="metric-card"><div class="metric-label">Project Code</div><div class="metric-value">${escapeHtml(project.code)}</div><div class="metric-note">Current selection</div></div>
         <div class="metric-card"><div class="metric-label">BOQ Grand Total</div><div class="metric-value">${peso(totals.totalGrand)}</div><div class="metric-note">Labor + material/equipment</div></div>
-        <div class="metric-card"><div class="metric-label">Items / Detail Rows</div><div class="metric-value">${totals.totalItems}</div><div class="metric-note">${totals.totalSubItems} sub-items • ${totals.totalSubSubItems} sub-sub-items</div></div>
+        <div class="metric-card"><div class="metric-label">Items / Detail Rows</div><div class="metric-value">${totals.totalItems}</div><div class="metric-note">${totals.totalSubItems} sub-items • ${totals.totalSubSubItems} sub-sub-items • ${totals.totalSubSubSubItems || 0} sub-sub-sub-items</div></div>
         <div class="metric-card"><div class="metric-label">Status</div><div class="metric-value">${escapeHtml(project.status)}</div><div class="metric-note">${escapeHtml(project.location)}</div></div>`;
     }
     function updateBOQSummary(project) {
       const totals = calcProjectTotals(project);
       document.getElementById('metricItems').textContent = totals.totalItems;
-      document.getElementById('metricSubItems').textContent = `${totals.totalSubItems} / ${totals.totalSubSubItems}`;
+      document.getElementById('metricSubItems').textContent = `${totals.totalSubItems} / ${totals.totalSubSubItems} / ${totals.totalSubSubSubItems || 0}`;
       document.getElementById('sumLabor').textContent = peso(totals.totalLabor);
       document.getElementById('sumMaterial').textContent = peso(totals.totalMaterial);
       document.getElementById('sumGrand').textContent = peso(totals.totalGrand);
@@ -2789,7 +2870,7 @@
       project.boq.forEach((item, itemIndex) => {
         const itemTotals = calcItem(item); const itemRow = document.createElement('tr'); itemRow.className = 'item-row';
         itemRow.innerHTML = `
-          <td class="level-item item-code-cell">${itemIndex + 1}.0.0</td>
+          <td class="level-item item-code-cell">${formatWBS(itemIndex + 1, 0, 0, 0)}</td>
           <td colspan="2"><div class="name-cell"><button class="toggle-btn" onclick="toggleItem('${item.id}')" title="${item.expanded ? 'Collapse' : 'Expand'}">${item.expanded ? '▾' : '▸'}</button><div class="name-input-wrap level-item"><input value="${escapeHtml(item.name)}" placeholder="Enter item name" onchange="updateItemName('${item.id}', this.value)"></div></div></td>
           <td class="unit-col"></td><td class="cost-col"></td><td class="cost-col"></td>
           <td class="cost-col"><input readonly value="${peso(itemTotals.totalLabor)}"></td>
@@ -2801,7 +2882,7 @@
         item.subItems.forEach((sub, subIndex) => {
           const subTotals = calcSubItem(sub); const hasChildren = sub.subSubItems.length > 0; const subRow = document.createElement('tr'); subRow.className = 'subitem-row';
           subRow.innerHTML = `
-            <td class="item-code-cell">${itemIndex + 1}.${subIndex + 1}.0</td>
+            <td class="item-code-cell">${formatWBS(itemIndex + 1, subIndex + 1, 0, 0)}</td>
             <td><div class="name-cell">${hasChildren ? `<button class="toggle-btn" onclick="toggleSubItem('${item.id}', '${sub.id}')" title="${sub.expanded ? 'Collapse' : 'Expand'}">${sub.expanded ? '▾' : '▸'}</button>` : '<span class="toggle-spacer"></span>'}<div class="name-input-wrap level-sub"><input value="${escapeHtml(sub.name)}" placeholder="Enter sub-item name" onchange="updateSubItem('${item.id}', '${sub.id}', 'name', this.value)"></div></div></td>
             <td><input type="number" min="0" step="any" value="${sub.qty}" onchange="updateSubItem('${item.id}', '${sub.id}', 'qty', this.value)"></td>
             <td class="unit-col"><input value="${escapeHtml(sub.unit)}" placeholder="unit" onchange="updateSubItem('${item.id}', '${sub.id}', 'unit', this.value)"></td>
@@ -2814,10 +2895,10 @@
           tbody.appendChild(subRow);
           if (!sub.expanded) return;
           sub.subSubItems.forEach((child, childIndex) => {
-            const childTotals = calcBaseCost(child); const childRow = document.createElement('tr'); childRow.className = 'subsub-row';
+            const childTotals = calcSubSubItem(child); const hasGrandchildren = (child.subSubSubItems || []).length > 0; const childRow = document.createElement('tr'); childRow.className = 'subsub-row';
             childRow.innerHTML = `
-              <td class="item-code-cell">${itemIndex + 1}.${subIndex + 1}.${childIndex + 1}</td>
-              <td><div class="name-cell"><span class="toggle-spacer"></span><div class="name-input-wrap level-subsub"><input value="${escapeHtml(child.name)}" placeholder="Enter sub-sub-item name" onchange="updateSubSubItem('${item.id}', '${sub.id}', '${child.id}', 'name', this.value)"></div></div></td>
+              <td class="item-code-cell">${formatWBS(itemIndex + 1, subIndex + 1, childIndex + 1, 0)}</td>
+              <td><div class="name-cell">${hasGrandchildren ? `<button class="toggle-btn" onclick="toggleSubSubItem('${item.id}', '${sub.id}', '${child.id}')" title="${child.expanded ? 'Collapse' : 'Expand'}">${child.expanded ? '▾' : '▸'}</button>` : '<span class="toggle-spacer"></span>'}<div class="name-input-wrap level-subsub"><input value="${escapeHtml(child.name)}" placeholder="Enter sub-sub-item name" onchange="updateSubSubItem('${item.id}', '${sub.id}', '${child.id}', 'name', this.value)"></div></div></td>
               <td><input type="number" min="0" step="any" value="${child.qty}" onchange="updateSubSubItem('${item.id}', '${sub.id}', '${child.id}', 'qty', this.value)"></td>
               <td class="unit-col"><input value="${escapeHtml(child.unit)}" placeholder="unit" onchange="updateSubSubItem('${item.id}', '${sub.id}', '${child.id}', 'unit', this.value)"></td>
               <td class="cost-col"><input type="text" inputmode="decimal" value="${pesoInput(child.laborUnitCost)}" onchange="updateSubSubItem('${item.id}', '${sub.id}', '${child.id}', 'laborUnitCost', this.value); this.value = pesoInput(this.value);"></td>
@@ -2825,8 +2906,24 @@
               <td class="cost-col"><input readonly value="${peso(childTotals.totalLabor)}"></td>
               <td class="cost-col"><input readonly value="${peso(childTotals.totalMaterial)}"></td>
               <td class="cost-col"><input readonly value="${peso(childTotals.grandTotal)}"></td>
-              <td><div class="row-actions"><button class="icon-btn mini-danger" onclick="removeSubSubItem('${item.id}', '${sub.id}', '${child.id}')" title="Delete sub-sub-item">🗑</button></div></td>`;
+              <td><div class="row-actions"><button class="icon-btn mini-warn" onclick="addSubSubSubItem('${item.id}', '${sub.id}', '${child.id}')" title="Add sub-sub-sub-item">⊞</button><button class="icon-btn mini-danger" onclick="removeSubSubItem('${item.id}', '${sub.id}', '${child.id}')" title="Delete sub-sub-item">🗑</button></div></td>`;
             tbody.appendChild(childRow);
+            if (child.expanded === false) return;
+            (child.subSubSubItems || []).forEach((grandchild, grandchildIndex) => {
+              const grandchildTotals = calcBaseCost(grandchild); const grandchildRow = document.createElement('tr'); grandchildRow.className = 'subsub-row';
+              grandchildRow.innerHTML = `
+                <td class="item-code-cell">${formatWBS(itemIndex + 1, subIndex + 1, childIndex + 1, grandchildIndex + 1)}</td>
+                <td><div class="name-cell"><span class="toggle-spacer"></span><div class="name-input-wrap level-subsubsub"><input value="${escapeHtml(grandchild.name)}" placeholder="Enter sub-sub-sub-item name" onchange="updateSubSubSubItem('${item.id}', '${sub.id}', '${child.id}', '${grandchild.id}', 'name', this.value)"></div></div></td>
+                <td><input type="number" min="0" step="any" value="${grandchild.qty}" onchange="updateSubSubSubItem('${item.id}', '${sub.id}', '${child.id}', '${grandchild.id}', 'qty', this.value)"></td>
+                <td class="unit-col"><input value="${escapeHtml(grandchild.unit)}" placeholder="unit" onchange="updateSubSubSubItem('${item.id}', '${sub.id}', '${child.id}', '${grandchild.id}', 'unit', this.value)"></td>
+                <td class="cost-col"><input type="text" inputmode="decimal" value="${pesoInput(grandchild.laborUnitCost)}" onchange="updateSubSubSubItem('${item.id}', '${sub.id}', '${child.id}', '${grandchild.id}', 'laborUnitCost', this.value); this.value = pesoInput(this.value);"></td>
+                <td class="cost-col"><input type="text" inputmode="decimal" value="${pesoInput(grandchild.materialUnitCost)}" onchange="updateSubSubSubItem('${item.id}', '${sub.id}', '${child.id}', '${grandchild.id}', 'materialUnitCost', this.value); this.value = pesoInput(this.value);"></td>
+                <td class="cost-col"><input readonly value="${peso(grandchildTotals.totalLabor)}"></td>
+                <td class="cost-col"><input readonly value="${peso(grandchildTotals.totalMaterial)}"></td>
+                <td class="cost-col"><input readonly value="${peso(grandchildTotals.grandTotal)}"></td>
+                <td><div class="row-actions"><button class="icon-btn mini-danger" onclick="removeSubSubSubItem('${item.id}', '${sub.id}', '${child.id}', '${grandchild.id}')" title="Delete sub-sub-sub-item">🗑</button></div></td>`;
+              tbody.appendChild(grandchildRow);
+            });
           });
         });
       });
