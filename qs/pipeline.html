@@ -6,25 +6,27 @@
     <title>Project Pipeline System</title>
     <style>
         * { box-sizing: border-box; font-family: Arial, sans-serif; }
-        body { margin: 0; padding: 12px; background: #f4f6f8; color: #2c3e50; overflow-x: hidden; }
-        body.dark-mode { background: #0f1720; color: #e6edf5; }
+        body { margin: 0; padding: 8px; background: linear-gradient(180deg, #eef2f7 0%, #dfe6ef 100%); color: #243447; overflow-x: hidden; }
+        body.dark-mode { background: linear-gradient(180deg, #0f172a 0%, #111827 100%); color: #e6edf5; }
         .container {
             width: min(100vw - 24px, 100%);
             max-width: none;
             margin: 0 auto;
-            padding: 16px;
-            background: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 14px;
+            background: rgba(255, 255, 255, 0.97);
+            border: 1px solid #d6dee8;
+            border-radius: 14px;
+            box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+            backdrop-filter: blur(6px);
         }
-        body.dark-mode .container, body.dark-mode .dashboard-panel, body.dark-mode .modal { background: #16212b; color: #e6edf5; border-color: #223140; }
-        h1 { margin: 0 0 8px; font-size: 24px; }
-        .subtitle { font-size: 13px; color: #7f8c8d; margin-bottom: 12px; }
+        body.dark-mode .container, body.dark-mode .dashboard-panel, body.dark-mode .modal { background: rgba(22, 33, 43, 0.96); color: #e6edf5; border-color: #223140; }
+        h1 { margin: 0 0 4px; font-size: 20px; letter-spacing: -0.02em; color: #111827; }
+        .subtitle { font-size: 12px; color: #64748b; margin-bottom: 8px; }
         body.dark-mode .subtitle, body.dark-mode .text-muted, body.dark-mode th, body.dark-mode .dashboard-card-label { color: #b8c7d9; }
 
-        .view-switcher, .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        .view-switcher, .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
         .view-btn, .tab, .theme-toggle, .home-btn, .btn {
-            padding: 6px 12px; border: none; border-radius: 999px; cursor: pointer; font-size: 12px; font-weight: bold;
+            padding: 5px 10px; border: none; border-radius: 999px; cursor: pointer; font-size: 11px; font-weight: bold;
             text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
         }
         .view-btn, .tab { background: linear-gradient(135deg, #e9eef5, #dfe7f1); color: #2c3e50; }
@@ -54,40 +56,406 @@
         .btn-vo { background: #8e44ad; color: #fff; }
         .btn-small { padding: 4px 7px; font-size: 11px; border-radius: 6px; }
 
-        .dashboard { display: grid; gap: 10px; }
+        .dashboard { display: grid; gap: 8px; }
         .dashboard-cards {
-            display: grid; grid-template-columns: repeat(7, minmax(130px, 1fr)); gap: 8px; overflow-x: auto;
+            display: grid;
+            grid-template-columns: repeat(7, minmax(145px, 1fr));
+            gap: 8px;
+            overflow-x: visible;
         }
         .dashboard-card {
-            border-radius: 10px; padding: 10px; color: #fff; min-height: 78px; box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+            padding: 10px 11px;
+            color: #fff;
+            min-height: 78px;
+            border: 1px solid rgba(255,255,255,0.18);
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            isolation: isolate;
         }
-        .dashboard-card:nth-child(1) { background: linear-gradient(135deg, #3498db, #6dd5fa); }
-        .dashboard-card:nth-child(2) { background: linear-gradient(135deg, #16a085, #2ecc71); }
-        .dashboard-card:nth-child(3) { background: linear-gradient(135deg, #c0392b, #ff7675); }
-        .dashboard-card:nth-child(4) { background: linear-gradient(135deg, #8e44ad, #c56cf0); }
-        .dashboard-card:nth-child(5) { background: linear-gradient(135deg, #2d98da, #3867d6); }
-        .dashboard-card:nth-child(6) { background: linear-gradient(135deg, #e67e22, #f8c471); }
-        .dashboard-card:nth-child(7) { background: linear-gradient(135deg, #e84393, #fd79a8); }
-        .dashboard-card-label { font-size: 11px; opacity: .95; margin-bottom: 3px; }
-        .dashboard-card-value { font-size: 18px; font-weight: bold; }
+        .dashboard-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.01));
+            z-index: 0;
+        }
+        .dashboard-card::after {
+            content: '';
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            right: -26px;
+            top: -26px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.10);
+            z-index: 0;
+        }
+        .dashboard-card > * { position: relative; z-index: 1; }
+        .dashboard-card:nth-child(1) { background: linear-gradient(135deg, #172554, #1d4ed8); }
+        .dashboard-card:nth-child(2) { background: linear-gradient(135deg, #064e3b, #047857); }
+        .dashboard-card:nth-child(3) { background: linear-gradient(135deg, #7f1d1d, #b91c1c); }
+        .dashboard-card:nth-child(4) { background: linear-gradient(135deg, #312e81, #5b21b6); }
+        .dashboard-card:nth-child(5) { background: linear-gradient(135deg, #0f172a, #1e40af); }
+        .dashboard-card:nth-child(6) { background: linear-gradient(135deg, #78350f, #b45309); }
+        .dashboard-card:nth-child(7) { background: linear-gradient(135deg, #831843, #be185d); }
+        .dashboard-card-label {
+            font-size: 10px;
+            opacity: 0.94;
+            margin-bottom: 5px;
+            font-weight: 700;
+            letter-spacing: 0.035em;
+            text-transform: uppercase;
+            line-height: 1.2;
+        }
+        .dashboard-card-value {
+            font-size: clamp(15px, 1.15vw, 22px);
+            font-weight: 800;
+            line-height: 1.05;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.16);
+            white-space: nowrap;
+            word-break: normal;
+            overflow-wrap: normal;
+            overflow: visible;
+            letter-spacing: -0.035em;
+            font-variant-numeric: tabular-nums;
+        }
 
-        .dashboard-grid, .dashboard-grid-secondary, .dashboard-grid-tertiary { display: grid; gap: 10px; }
+        .dashboard-grid, .dashboard-grid-secondary, .dashboard-grid-tertiary { display: grid; gap: 8px; }
         .dashboard-grid { grid-template-columns: 1fr 1fr 1fr; }
         .dashboard-grid-secondary, .dashboard-grid-tertiary { grid-template-columns: 1fr 1fr; }
         .dashboard-panel {
-            background: linear-gradient(180deg, #ffffff, #f8fbff); border: 1px solid #e3e8ee; border-radius: 10px; padding: 10px;
-            box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(180deg, #ffffff, #f8fafc);
+            border: 1px solid #d6dee8;
+            border-radius: 12px;
+            padding: 10px 11px;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
         }
-        .dashboard-panel h3 { margin: 0 0 6px; font-size: 13px; }
-        .dashboard-list { display: grid; gap: 4px; font-size: 11px; }
-        .dashboard-list-item { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; border-bottom: 1px solid #eef2f5; }
-        .dashboard-list-item:last-child { border-bottom: none; }
-        body.dark-mode .dashboard-list-item { border-bottom-color: #243546; }
+        .dashboard-panel::before {
+            content: '';
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 3px;
+            background: linear-gradient(90deg, #0f172a, #1d4ed8, #64748b);
+        }
+        .dashboard-panel::after {
+            content: '';
+            position: absolute;
+            width: 86px;
+            height: 86px;
+            right: -34px;
+            top: -38px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(15,23,42,0.08) 0%, rgba(15,23,42,0.015) 58%, transparent 72%);
+            pointer-events: none;
+        }
+        .dashboard-panel > * { position: relative; z-index: 1; }
+        .dashboard-panel h3 {
+            margin: 0 0 8px;
+            font-size: 12px;
+            font-weight: 800;
+            color: #111827;
+            letter-spacing: 0.015em;
+        }
+        .panel-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin: 0 0 8px;
+        }
+        .panel-heading h3 { margin: 0; }
+        .panel-heading-total {
+            white-space: nowrap;
+            font-size: 12px;
+            font-weight: 900;
+            color: #0f172a;
+            background: linear-gradient(180deg, #f8fafc, #e8eef7);
+            border: 1px solid #d7e0ea;
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-variant-numeric: tabular-nums;
+        }
+        .dashboard-list { display: grid; gap: 5px; font-size: 11px; }
+        .dashboard-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 9px;
+            background: rgba(248, 250, 252, 0.96);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+        }
+        .dashboard-list-item:last-child { border-bottom: 1px solid #e2e8f0; }
+        .dashboard-list-item strong {
+            white-space: nowrap;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: #e8eef7;
+            color: #1e3a8a;
+            font-size: 10px;
+            font-weight: 800;
+        }
+        body.dark-mode .dashboard-list-item {
+            border-color: #2a3b4d;
+            background: rgba(20, 30, 40, 0.92);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+        }
+        body.dark-mode .dashboard-list-item strong {
+            background: rgba(59, 130, 246, 0.20);
+            color: #dbeafe;
+        }
+        body.dark-mode .dashboard-panel h3 { color: #e6edf5; }
+        body.dark-mode .panel-heading-total { color: #e6edf5; background: rgba(59, 130, 246, 0.16); border-color: #2a3b4d; }
 
-        .summary-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-        .summary-table th, .summary-table td { padding: 6px 8px; border-bottom: 1px solid #eef2f5; text-align: left; vertical-align: middle; }
-        .summary-table th { color: #000; background: transparent; font-size: 11px; }
-        body.dark-mode .summary-table th, body.dark-mode .summary-table td { border-bottom-color: #243546; }
+        .summary-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 11px;
+            border: 1px solid #d7e0ea;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #ffffff;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+        }
+        .summary-table th, .summary-table td {
+            padding: 7px 10px;
+            text-align: left;
+            vertical-align: middle;
+        }
+        .summary-table thead th {
+            background: linear-gradient(180deg, #f8fafc, #edf2f7);
+            color: #475569;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.055em;
+            border-bottom: 1px solid #d7e0ea;
+        }
+        .summary-table tbody td {
+            background: #ffffff;
+            border-bottom: 1px solid #e9eff5;
+            color: #1f2937;
+        }
+        .summary-table tbody tr:nth-child(even) td {
+            background: #f8fafc;
+        }
+        .summary-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .summary-table tbody td:first-child {
+            font-weight: 600;
+        }
+        .summary-table tbody td:last-child {
+            white-space: nowrap;
+            font-weight: 800;
+            color: #1d4ed8;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+        .summary-table tbody tr:hover td {
+            background: #eef4ff;
+        }
+        body.dark-mode .summary-table {
+            background: #16212b;
+            border-color: #2a3b4d;
+            box-shadow: none;
+        }
+        body.dark-mode .summary-table thead th {
+            background: linear-gradient(180deg, #1b2835, #17222d);
+            color: #94a3b8;
+            border-bottom-color: #2a3b4d;
+        }
+        body.dark-mode .summary-table tbody td {
+            background: #16212b;
+            border-bottom-color: #26384a;
+            color: #e6edf5;
+        }
+        body.dark-mode .summary-table tbody tr:nth-child(even) td {
+            background: #14202a;
+        }
+        body.dark-mode .summary-table tbody td:last-child {
+            color: #93c5fd;
+        }
+        body.dark-mode .summary-table tbody tr:hover td {
+            background: #1a2a38;
+        }
+
+        /* Outstanding Billable Value table: professional column distribution */
+        .summary-table.unbilled-balance-table {
+            table-layout: fixed;
+            width: 100%;
+        }
+        .summary-table.unbilled-balance-table th,
+        .summary-table.unbilled-balance-table td {
+            padding: 8px 10px;
+            vertical-align: middle;
+        }
+        .summary-table.unbilled-balance-table th:nth-child(1),
+        .summary-table.unbilled-balance-table td:nth-child(1) {
+            width: 30%;
+            text-align: left;
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+        .summary-table.unbilled-balance-table th:nth-child(2),
+        .summary-table.unbilled-balance-table td:nth-child(2) {
+            width: 16%;
+            text-align: center;
+        }
+        .summary-table.unbilled-balance-table th:nth-child(3),
+        .summary-table.unbilled-balance-table td:nth-child(3),
+        .summary-table.unbilled-balance-table th:nth-child(4),
+        .summary-table.unbilled-balance-table td:nth-child(4) {
+            width: 27%;
+            text-align: right;
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+        .summary-table.unbilled-balance-table tbody td:nth-child(2) {
+            font-weight: 800;
+            color: #334155;
+        }
+        body.dark-mode .summary-table.unbilled-balance-table tbody td:nth-child(2) {
+            color: #dbeafe;
+        }
+
+        .summary-table.project-name-table tbody td:last-child {
+            white-space: normal;
+            text-align: left;
+            color: #334155;
+            font-weight: 600;
+            line-height: 1.45;
+        }
+        body.dark-mode .summary-table.project-name-table tbody td:last-child {
+            color: #dbeafe;
+        }
+        .summary-table.project-name-table {
+            table-layout: fixed;
+            width: 100%;
+        }
+        .summary-table.project-name-table th,
+        .summary-table.project-name-table td {
+            vertical-align: top;
+        }
+        .summary-table.project-name-table th:nth-child(1),
+        .summary-table.project-name-table td:nth-child(1) {
+            width: 18%;
+        }
+        .summary-table.project-name-table th:nth-child(2),
+        .summary-table.project-name-table td:nth-child(2) {
+            width: 14%;
+            text-align: center;
+        }
+        .summary-table.project-name-table th:nth-child(3),
+        .summary-table.project-name-table td:nth-child(3) {
+            width: 28%;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            color: #1d4ed8;
+            font-weight: 800;
+        }
+        .summary-table.project-name-table th:nth-child(4),
+        .summary-table.project-name-table td:nth-child(4) {
+            width: 40%;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            text-align: left;
+        }
+        body.dark-mode .summary-table.project-name-table tbody td:nth-child(3) {
+            color: #93c5fd;
+        }
+        .project-name-item {
+            display: block;
+            padding: 1px 0;
+            white-space: normal;
+        }
+
+
+        .ber-chart-panel {
+            display: flex;
+            flex-direction: column;
+            min-height: 340px;
+        }
+        .ber-chart-panel #categorySummaryTable {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        .ber-chart-wrap {
+            flex: 1;
+            display: grid;
+            grid-template-rows: minmax(250px, 1fr) auto;
+            gap: 4px;
+            min-height: 0;
+        }
+        .ber-chart-scroll {
+            position: relative;
+            overflow: auto;
+            min-height: 250px;
+            border: 1px solid #d7e0ea;
+            border-radius: 10px;
+            background: linear-gradient(180deg, #ffffff, #f8fafc);
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+            touch-action: none;
+        }
+        .ber-chart-zoom-surface {
+            width: 100%;
+            height: 100%;
+            min-width: 100%;
+            min-height: 100%;
+        }
+        .ber-chart-svg {
+            width: 100%;
+            height: 100%;
+            min-height: 250px;
+            display: block;
+        }
+        .ber-zoom-indicator {
+            position: absolute;
+            top: 6px;
+            right: 8px;
+            z-index: 2;
+            padding: 2px 7px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.72);
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 800;
+            pointer-events: none;
+        }
+        .ber-chart-axis, .ber-chart-grid { stroke: #cbd5e1; stroke-width: 1; }
+        .ber-chart-grid { opacity: 0.75; }
+        .ber-chart-bar { fill: #3498db; }
+        .ber-chart-label { fill: #334155; font-size: 10px; font-weight: 700; }
+        .ber-chart-value { fill: #0f172a; font-size: 10px; font-weight: 800; }
+        .ber-chart-caption { fill: #64748b; font-size: 9px; font-weight: 700; }
+        .ber-interpretation {
+            margin-top: 0;
+            padding: 5px 7px;
+            border-radius: 8px;
+            background: #eef4ff;
+            border: 1px solid #dbe7ff;
+            color: #1e3a8a;
+            font-size: 10px;
+            line-height: 1.25;
+        }
+        .ber-interpretation strong { font-weight: 900; }
+        body.dark-mode .ber-chart-scroll { background: #16212b; border-color: #2a3b4d; box-shadow: none; }
+        body.dark-mode .ber-chart-axis, body.dark-mode .ber-chart-grid { stroke: #334155; }
+        body.dark-mode .ber-chart-label, body.dark-mode .ber-chart-value { fill: #e6edf5; }
+        body.dark-mode .ber-chart-caption { fill: #b8c7d9; }
+        body.dark-mode .ber-interpretation { background: rgba(59, 130, 246, 0.16); border-color: #2a3b4d; color: #dbeafe; }
 
         table { width: 100%; border-collapse: collapse; table-layout: auto; font-size: 12px; }
         th, td { padding: 8px 6px; border-bottom: 1px solid #ecf0f1; vertical-align: top; white-space: nowrap; }
@@ -138,8 +506,43 @@
         .vo-indicator-yellow { color: #f1c40f; font-weight: bold; }
         .vo-indicator-green { color: #27ae60; font-weight: bold; }
 
+
+
+        /* Whole sheet mouse-wheel zoom */
+        .sheet-view {
+            transform-origin: top left;
+        }
+        .sheet-zoom-indicator {
+            padding: 5px 10px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #f8fafc, #e8eef7);
+            border: 1px solid #d7e0ea;
+            color: #0f172a;
+            font-size: 11px;
+            font-weight: 800;
+            pointer-events: none;
+            margin-left: 4px;
+        }
+        body.dark-mode .sheet-zoom-indicator {
+            background: rgba(59, 130, 246, 0.16);
+            border-color: #2a3b4d;
+            color: #e6edf5;
+        }
+
+        body.sheet-panning {
+            cursor: grabbing !important;
+            user-select: none !important;
+        }
+        body.sheet-panning * {
+            cursor: grabbing !important;
+            user-select: none !important;
+        }
+        .sheet-view.active {
+            cursor: default;
+        }
+
         @media (max-width: 1100px) {
-            .dashboard-cards { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+            .dashboard-cards { grid-template-columns: repeat(2, minmax(160px, 1fr)); overflow-x: auto; }
             .dashboard-grid, .dashboard-grid-secondary, .dashboard-grid-tertiary, .two-column, .three-column { grid-template-columns: 1fr; }
             .theme-toggle { margin-left: 0; }
         }
@@ -239,10 +642,10 @@
     <div class="subtitle">Dynamic pipeline with VO tracking, approval workflow, and cost integration.</div>
 
     <div class="view-switcher">
-        <a class="home-btn" href="index.html" aria-label="Go to home page"><span class="home-btn-icon" aria-hidden="true">⌂</span> Home</a>
+        <a class="home-btn" href="../index.html" aria-label="Go to home page"><span class="home-btn-icon" aria-hidden="true">⌂</span> Home</a>
         <button class="view-btn" id="tableViewBtn">Project Sheet</button>
         <button class="view-btn active" id="dashboardViewBtn">Dashboard Sheet</button>
-        <button class="theme-toggle" id="themeToggleBtn">Dark Mode</button>
+        <button class="theme-toggle" id="themeToggleBtn">Dark Mode</button><span class="sheet-zoom-indicator" id="sheetZoomIndicator">Zoom: 100%</span>
     </div>
 
     <div class="sheet-view active" id="dashboardSheet">
@@ -260,15 +663,15 @@
             <div class="dashboard-grid">
                 <div class="dashboard-panel"><h3>Stage Summary</h3><div id="stageSummaryTable"></div></div>
                 <div class="dashboard-panel"><h3>Status Summary</h3><div id="statusSummaryTable"></div></div>
-                <div class="dashboard-panel"><h3>Project Managers</h3><div class="dashboard-list" id="pmSummaryList"></div></div>
+                <div class="dashboard-panel"><h3>Project Managers</h3><div id="pmSummaryTable"></div></div>
             </div>
             <div class="dashboard-grid-secondary">
-                <div class="dashboard-panel"><h3>Category Summary</h3><div id="categorySummaryTable"></div></div>
+                <div class="dashboard-panel ber-chart-panel"><h3>Billing / Cost Efficiency Bar Chart</h3><div id="categorySummaryTable"></div></div>
                 <div class="dashboard-panel"><h3>Monthly Start Summary</h3><div id="monthlySummaryTable"></div></div>
             </div>
             <div class="dashboard-grid-tertiary">
-                <div class="dashboard-panel"><h3>Schedule Health</h3><div id="scheduleSummaryTable"></div></div>
-                <div class="dashboard-panel"><h3>Status Insights</h3><div class="dashboard-list" id="statusInsightList"></div></div>
+                <div class="dashboard-panel"><div class="panel-heading"><h3>Outstanding Billable Value</h3><span class="panel-heading-total" id="outstandingBillableTotal">Total: ₱ 0.00</span></div><div id="scheduleSummaryTable"></div></div>
+                <div class="dashboard-panel"><h3>Status Insights</h3><div id="statusInsightTable"></div></div>
             </div>
         </div>
     </div>
@@ -277,7 +680,7 @@
         <div class="tabs" id="categoryTabs"></div>
         <div class="filters">
             <div><label>Search</label><input type="text" id="searchInput" placeholder="Search by project, client, PM..."></div>
-            <div><label>Stage</label><select id="stageFilter"><option value="">All</option><option>Bid-Opportunity</option><option>Bid-Lost</option><option>Proposed</option><option>On-going</option><option>Completed</option><option>On Hold</option></select></div>
+            <div><label>Stage</label><select id="stageFilter"><option value="">All</option><option>Bid-Opportunity</option><option>Bid-Lost</option><option>Bid Submitted</option><option>On Going Estimate</option><option>Proposed</option><option>On-going</option><option>Completed</option><option>On Hold</option></select></div>
             <div><label>Status</label><select id="statusFilter"><option value="">All</option><option>On Track</option><option>Delayed</option><option>Critical</option><option>Completed</option></select></div>
             <div><label>Project Manager</label><select id="pmFilter"><option value="">All</option></select></div>
             <div style="margin-left:auto; display:flex; gap:8px;"><button class="btn btn-secondary" id="clearFiltersBtn">Clear Filters</button><button class="btn btn-primary" id="addProjectBtn">Add Project</button>
@@ -319,7 +722,7 @@
             <div class="three-column">
                 <div><label>Project ID</label><input type="text" id="projId"></div>
                 <div><label>Category</label><select id="projCategory"><option>Private</option><option>Government</option><option>Admin</option></select></div>
-                <div><label>Stage</label><select id="projStage"><option>Bid-Opportunity</option><option>Bid-Lost</option><option>Proposed</option><option>On-going</option><option>Completed</option><option>On Hold</option></select></div>
+                <div><label>Stage</label><select id="projStage"><option>Bid-Opportunity</option><option>Bid-Lost</option><option>Bid Submitted</option><option>On Going Estimate</option><option>Proposed</option><option>On-going</option><option>Completed</option><option>On Hold</option></select></div>
             </div>
             <div class="two-column mt-10">
                 <div><label>Project Title</label><input type="text" id="projTitle"></div>
@@ -382,6 +785,95 @@
 let pipelineData = [];
 let currentCategory = 'All';
 let currentVOProjectIndex = null;
+let sheetZoom = 1;
+let sheetPanState = null;
+
+function applySheetZoom() {
+    document.querySelectorAll('.sheet-view').forEach(sheet => {
+        sheet.style.zoom = sheet.classList.contains('active') ? sheetZoom : 1;
+    });
+    const indicator = document.getElementById('sheetZoomIndicator');
+    if (indicator) indicator.textContent = 'Zoom: ' + Math.round(sheetZoom * 100) + '%';
+}
+
+function handleWholeSheetWheelZoom(event) {
+    const activeSheet = document.querySelector('.sheet-view.active');
+    if (!activeSheet || !event.target.closest('.sheet-view.active')) return;
+    if (event.target.closest('.modal-overlay')) return;
+    event.preventDefault();
+    const delta = event.deltaY < 0 ? 0.1 : -0.1;
+    sheetZoom = Math.max(0.6, Math.min(2.5, Number((sheetZoom + delta).toFixed(2))));
+    applySheetZoom();
+}
+
+function resetWholeSheetZoom() {
+    sheetZoom = 1;
+    window.scrollTo({ left: 0, top: 0, behavior: 'auto' });
+    applySheetZoom();
+}
+
+function getScrollableAncestor(element) {
+    let node = element;
+    while (node && node !== document.body && node !== document.documentElement) {
+        const style = window.getComputedStyle(node);
+        const canScrollX = /(auto|scroll)/.test(style.overflowX) && node.scrollWidth > node.clientWidth;
+        const canScrollY = /(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight;
+        if (canScrollX || canScrollY) return node;
+        node = node.parentElement;
+    }
+    return document.scrollingElement || document.documentElement;
+}
+
+function startWholeSheetPan(event) {
+    if (event.button !== 1) return;
+    const activeSheet = document.querySelector('.sheet-view.active');
+    if (!activeSheet || !event.target.closest('.sheet-view.active')) return;
+    if (event.target.closest('.modal-overlay')) return;
+    event.preventDefault();
+    const scrollTarget = getScrollableAncestor(event.target);
+    sheetPanState = {
+        scrollTarget,
+        startX: event.clientX,
+        startY: event.clientY,
+        startLeft: scrollTarget.scrollLeft,
+        startTop: scrollTarget.scrollTop,
+        windowLeft: window.scrollX,
+        windowTop: window.scrollY
+    };
+    document.body.classList.add('sheet-panning');
+}
+
+function moveWholeSheetPan(event) {
+    if (!sheetPanState) return;
+    event.preventDefault();
+    const dx = event.clientX - sheetPanState.startX;
+    const dy = event.clientY - sheetPanState.startY;
+    const target = sheetPanState.scrollTarget;
+    if (target === document.scrollingElement || target === document.documentElement || target === document.body) {
+        window.scrollTo(sheetPanState.windowLeft - dx, sheetPanState.windowTop - dy);
+    } else {
+        target.scrollLeft = sheetPanState.startLeft - dx;
+        target.scrollTop = sheetPanState.startTop - dy;
+    }
+}
+
+function stopWholeSheetPan() {
+    if (!sheetPanState) return;
+    sheetPanState = null;
+    document.body.classList.remove('sheet-panning');
+}
+
+document.addEventListener('wheel', handleWholeSheetWheelZoom, { passive: false });
+document.addEventListener('mousedown', startWholeSheetPan);
+document.addEventListener('mousemove', moveWholeSheetPan);
+document.addEventListener('mouseup', stopWholeSheetPan);
+document.addEventListener('mouseleave', stopWholeSheetPan);
+document.addEventListener('auxclick', event => {
+    if (event.button === 1 && event.target.closest('.sheet-view.active')) event.preventDefault();
+});
+document.addEventListener('dblclick', event => {
+    if (event.target.closest('.sheet-view.active') && !event.target.closest('.modal-overlay')) resetWholeSheetZoom();
+});
 
 const $ = id => document.getElementById(id);
 const parseNumber = val => (val === '' || val == null ? 0 : parseFloat(val) || 0);
@@ -423,11 +915,83 @@ function populatePMFilter() {
     $('pmFilter').value = current;
 }
 
-function renderSummaryTable(container, headers, rows) {
+function renderSummaryTable(container, headers, rows, extraClass = '') {
     if (!container) return;
     if (!rows.length) { container.innerHTML = '<div class="text-small text-muted">No data available.</div>'; return; }
-    container.innerHTML = `<table class="summary-table"><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    const tableClass = extraClass ? `summary-table ${extraClass}` : 'summary-table';
+    container.innerHTML = `<table class="${tableClass}"><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
 }
+function getProjectName(project) {
+    return project.title || project.id || project.client || 'Untitled Project';
+}
+function formatProjectNames(projects) {
+    if (!projects || !projects.length) return '-';
+    return projects.map(p => `<span class="project-name-item">${getProjectName(p)}</span>`).join('');
+}
+function formatProjectIds(projects) {
+    if (!projects || !projects.length) return '-';
+    return projects.map(p => `<span class="project-name-item">${p.id || '-'}</span>`).join('');
+}
+
+function computeDaysConsumed(start) {
+    if (!start) return 0;
+    const s = new Date(start);
+    if (isNaN(s)) return 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    s.setHours(0, 0, 0, 0);
+    const diff = Math.floor((today - s) / 86400000) + 1;
+    return diff > 0 ? diff : 0;
+}
+function getTotalProjectCost(project) {
+    return parseNumber(project.cost) + getVOTotal(project, true);
+}
+function getProjectBilledAmount(project) {
+    const progress = Math.max(0, Math.min(100, parseNumber(project.progress)));
+    return getTotalProjectCost(project) * (progress / 100);
+}
+function renderBERChart(container, rows) {
+    if (!container) return;
+    if (!rows.length) {
+        container.innerHTML = '<div class="text-small text-muted">No billing efficiency data available. Add active project start dates, cost, and progress to calculate BER. Bid-Opportunity, Bid-Lost, and Bid Submitted projects are excluded.</div>';
+        return;
+    }
+    const width = Math.max(720, rows.length * 92 + 92), height = 300, left = 66, right = 18, top = 18, bottom = 58;
+    const plotW = width - left - right, plotH = height - top - bottom;
+    const maxVal = Math.max(...rows.map(r => r.ber), 1);
+    const niceMax = Math.ceil(maxVal / 1000) * 1000 || maxVal;
+    const bandW = plotW / rows.length;
+    const barW = Math.max(42, Math.min(82, bandW * 0.64));
+    const y = val => top + plotH - ((val / niceMax) * plotH);
+    const tickCount = 4;
+    const ticks = Array.from({ length: tickCount + 1 }, (_, i) => (niceMax / tickCount) * i);
+    const grid = ticks.map(t => {
+        const yy = y(t);
+        return `<line class="ber-chart-grid" x1="${left}" x2="${width - right}" y1="${yy}" y2="${yy}"></line><text class="ber-chart-caption" x="${left - 8}" y="${yy + 3}" text-anchor="end">${Number(t).toLocaleString('en-PH', { maximumFractionDigits: 0 })}</text>`;
+    }).join('');
+    const bars = rows.map((r, i) => {
+        const x = left + (i * bandW) + ((bandW - barW) / 2);
+        const h = Math.max(1, top + plotH - y(r.ber));
+        const yy = top + plotH - h;
+        return `<rect class="ber-chart-bar" x="${x}" y="${yy}" width="${barW}" height="${h}" rx="7"></rect><text class="ber-chart-value" x="${x + barW / 2}" y="${Math.max(12, yy - 6)}" text-anchor="middle">${formatCurrency(r.ber).replace('₱ ', '₱')}</text><text class="ber-chart-label" x="${x + barW / 2}" y="${height - 25}" text-anchor="middle">${r.projectId}</text><text class="ber-chart-caption" x="${x + barW / 2}" y="${height - 16}" text-anchor="middle">${r.days} day${r.days === 1 ? '' : 's'}</text>`;
+    }).join('');
+    container.innerHTML = `<div class="ber-chart-wrap">
+        <div class="ber-chart-scroll" title="Use mouse wheel anywhere on the sheet to zoom · Press and drag the mouse wheel to pan · Double-click sheet to reset zoom">
+            <div class="ber-chart-zoom-surface">
+                <svg class="ber-chart-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="Billing efficiency rate by project ID">
+                    ${grid}
+                    <line class="ber-chart-axis" x1="${left}" x2="${left}" y1="${top}" y2="${top + plotH}"></line>
+                    <line class="ber-chart-axis" x1="${left}" x2="${width - right}" y1="${top + plotH}" y2="${top + plotH}"></line>
+                    <text class="ber-chart-caption" x="16" y="${top + 82}" transform="rotate(-90 16 ${top + 82})" text-anchor="middle">BER / Daily Cost Burn</text>
+                    ${bars}
+                    <text class="ber-chart-caption" x="${left + plotW / 2}" y="${height - 3}" text-anchor="middle">Project ID</text>
+                </svg>
+            </div>
+        </div>
+        <div class="ber-interpretation"><strong>Interpretation:</strong> High BER → generating value fast · Low BER → slow billing/delay · Zero BER → no billing yet</div>
+    </div>`;
+}
+
 
 function renderDashboard(projects) {
     const excludedBaseStages = new Set(['Bid-Lost', 'Bid-Opportunity', 'Proposed']);
@@ -447,7 +1011,7 @@ function renderDashboard(projects) {
     $('dashRevisedCost').textContent = formatCurrency(revisedCost);
     $('dashAvgProgress').textContent = avgProgress + '%';
 
-    const stageCounts = {}, statusCounts = {}, pmCounts = {}, categoryCounts = {}, monthlyCounts = {}, scheduleHealth = { 'On Schedule': 0, 'Delayed': 0 };
+    const stageCounts = {}, statusCounts = {}, pmCounts = {}, categoryCounts = {}, monthlyCounts = {}, monthlyProjects = {}, scheduleHealth = { 'On Schedule': 0, 'Delayed': 0 }, scheduleProjects = { 'On Schedule': [], 'Delayed': [] };
     projects.forEach(p => {
         stageCounts[p.stage || 'Unspecified'] = (stageCounts[p.stage || 'Unspecified'] || 0) + 1;
         statusCounts[p.status || 'Unspecified'] = (statusCounts[p.status || 'Unspecified'] || 0) + 1;
@@ -458,27 +1022,68 @@ function renderDashboard(projects) {
             if (!isNaN(d)) {
                 const k = d.toLocaleString('en-US', { month: 'short', year: '2-digit' });
                 monthlyCounts[k] = (monthlyCounts[k] || 0) + 1;
+                if (!monthlyProjects[k]) monthlyProjects[k] = [];
+                monthlyProjects[k].push(p);
             }
         }
-        computeDelayDays(p.end, p.progress) > 0 ? scheduleHealth['Delayed']++ : scheduleHealth['On Schedule']++;
+        const healthKey = computeDelayDays(p.end, p.progress) > 0 ? 'Delayed' : 'On Schedule';
+        scheduleHealth[healthKey]++;
+        scheduleProjects[healthKey].push(p);
     });
 
-    renderSummaryTable($('stageSummaryTable'), ['Stage', 'Count'], Object.entries(stageCounts));
-    renderSummaryTable($('statusSummaryTable'), ['Status', 'Count'], Object.entries(statusCounts));
-    renderSummaryTable($('categorySummaryTable'), ['Category', 'Count'], Object.entries(categoryCounts));
-    renderSummaryTable($('monthlySummaryTable'), ['Month', 'Projects'], Object.entries(monthlyCounts));
-    renderSummaryTable($('scheduleSummaryTable'), ['Health', 'Count'], Object.entries(scheduleHealth));
+    renderSummaryTable($('stageSummaryTable'), ['Stage', 'Count'], Object.entries(stageCounts).sort((a, b) => b[1] - a[1]));
+    renderSummaryTable($('statusSummaryTable'), ['Status', 'Count'], Object.entries(statusCounts).sort((a, b) => b[1] - a[1]));
+    const excludedBERKeys = new Set(['bidopportunity', 'bidlost', 'bidsubmitted']);
+    const isExcludedFromBERChart = p => {
+        const stageKey = String(p.stage || '').toLowerCase().replace(/[^a-z]/g, '');
+        const statusKey = String(p.status || '').toLowerCase().replace(/[^a-z]/g, '');
+        return excludedBERKeys.has(stageKey) || excludedBERKeys.has(statusKey);
+    };
+    const projectBERData = projects.filter(p => !isExcludedFromBERChart(p)).map((p, index) => {
+        const projectId = (p.id || `Project ${index + 1}`).trim();
+        const billed = getProjectBilledAmount(p);
+        const days = computeDaysConsumed(p.start);
+        return { projectId, billed, days, ber: days > 0 ? billed / days : 0 };
+    }).sort((a, b) => b.ber - a.ber);
+    renderBERChart($('categorySummaryTable'), projectBERData);
+    const monthlyRows = Object.entries(monthlyCounts).map(([month, count]) => [month, count, formatProjectIds(monthlyProjects[month] || []), formatProjectNames(monthlyProjects[month] || [])]);
+    renderSummaryTable($('monthlySummaryTable'), ['Month', 'Projects', 'Project ID', 'Project Name'], monthlyRows, 'project-name-table');
+    const excludedOutstandingBillableStages = new Set(['opportunity', 'bidopportunity', 'bidlost', 'bidsubmitted', 'propose', 'proposed']);
+    const isExcludedFromOutstandingBillable = p => {
+        const stageKey = String(p.stage || '').toLowerCase().replace(/[^a-z]/g, '');
+        const statusKey = String(p.status || '').toLowerCase().replace(/[^a-z]/g, '');
+        return excludedOutstandingBillableStages.has(stageKey) || excludedOutstandingBillableStages.has(statusKey);
+    };
+    const outstandingBillableData = projects
+        .filter(p => !isExcludedFromOutstandingBillable(p))
+        .map(p => {
+            const progress = Math.max(0, Math.min(100, parseNumber(p.progress)));
+            const totalProjectCost = parseNumber(p.cost) + getVOTotal(p, true);
+            const outstandingBillableValue = ((100 - progress) / 100) * totalProjectCost;
+            return {
+                projectId: p.id || '-',
+                progress,
+                totalProjectCost,
+                outstandingBillableValue
+            };
+        })
+        .sort((a, b) => b.outstandingBillableValue - a.outstandingBillableValue);
+    const outstandingBillableTotal = outstandingBillableData.reduce((sum, row) => sum + row.outstandingBillableValue, 0);
+    $('outstandingBillableTotal').textContent = 'Total: ' + formatCurrency(outstandingBillableTotal);
+    const outstandingBillableRows = outstandingBillableData.map(row => [
+        row.projectId,
+        row.progress + '%',
+        formatCurrency(row.totalProjectCost),
+        formatCurrency(row.outstandingBillableValue)
+    ]);
+    renderSummaryTable($('scheduleSummaryTable'), ['Project ID', 'Progress', 'Total Cost', 'Unbilled Balance'], outstandingBillableRows, 'unbilled-balance-table');
 
     const pmEntries = Object.entries(pmCounts).sort((a, b) => b[1] - a[1]);
-    $('pmSummaryList').innerHTML = pmEntries.length ? pmEntries.map(([n, c]) => `<div class="dashboard-list-item"><span>${n}</span><strong>${c}</strong></div>`).join('') : '<div class="text-small text-muted">No project managers found.</div>';
-    const topStage = Object.entries(stageCounts).sort((a, b) => b[1] - a[1])[0];
-    const topStatus = Object.entries(statusCounts).sort((a, b) => b[1] - a[1])[0];
-    $('statusInsightList').innerHTML = [
-        `<div class="dashboard-list-item"><span>On Schedule</span><strong>${scheduleHealth['On Schedule'] || 0}</strong></div>`,
-        `<div class="dashboard-list-item"><span>Delayed</span><strong>${scheduleHealth['Delayed'] || 0}</strong></div>`,
-        `<div class="dashboard-list-item"><span>Top Stage</span><strong>${topStage ? `${topStage[0]} (${topStage[1]})` : '-'}</strong></div>`,
-        `<div class="dashboard-list-item"><span>Top Status</span><strong>${topStatus ? `${topStatus[0]} (${topStatus[1]})` : '-'}</strong></div>`
-    ].join('');
+    renderSummaryTable($('pmSummaryTable'), ['Project Manager', 'Projects'], pmEntries);
+    renderSummaryTable($('statusInsightTable'), ['Metric', 'Value', 'Project ID', 'Project Name'], [
+        ['On Schedule', scheduleHealth['On Schedule'] || 0, formatProjectIds(scheduleProjects['On Schedule'] || []), formatProjectNames(scheduleProjects['On Schedule'] || [])],
+        ['Delayed', scheduleHealth['Delayed'] || 0, formatProjectIds(scheduleProjects['Delayed'] || []), formatProjectNames(scheduleProjects['Delayed'] || [])]
+    ], 'project-name-table');
 }
 
 function getFilteredProjects() {
@@ -587,7 +1192,7 @@ function renderVOTable(projectIndex) {
 }
 
 function setActiveSheet(sheet) {
-    const dash = sheet === 'dashboard'; $('dashboardSheet').classList.toggle('active', dash); $('tableSheet').classList.toggle('active', !dash); $('dashboardViewBtn').classList.toggle('active', dash); $('tableViewBtn').classList.toggle('active', !dash);
+    const dash = sheet === 'dashboard'; $('dashboardSheet').classList.toggle('active', dash); $('tableSheet').classList.toggle('active', !dash); $('dashboardViewBtn').classList.toggle('active', dash); $('tableViewBtn').classList.toggle('active', !dash); applySheetZoom();
 }
 
 ['searchInput','stageFilter','statusFilter','pmFilter'].forEach(id => $(id).addEventListener(id === 'searchInput' ? 'input' : 'change', renderTable));
@@ -597,7 +1202,7 @@ $('dashboardViewBtn').addEventListener('click', () => { setActiveSheet('dashboar
 $('tableViewBtn').addEventListener('click', () => setActiveSheet('table'));
 $('themeToggleBtn').addEventListener('click', () => { document.body.classList.toggle('dark-mode'); $('themeToggleBtn').textContent = document.body.classList.contains('dark-mode') ? 'Light Mode' : 'Dark Mode'; });
 
-loadData(); renderTabs(); populatePMFilter(); saveDataToStorage(); renderTable();
+loadData(); renderTabs(); populatePMFilter(); saveDataToStorage(); renderTable(); applySheetZoom();
 
 // ===== JSON STORAGE =====
 function loadData() {
