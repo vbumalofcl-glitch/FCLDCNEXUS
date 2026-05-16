@@ -2890,6 +2890,13 @@ body:has(#dashboard.active .dashboardDetailMode) .svgTitle{font-size:10px!import
           Load JSON
         </button>
         <input id="dashboardJsonFile" type="file" accept="application/json,.json" style="display:none" onchange="importDashboardJsonFile(event)">
+        <button onclick="saveDashboardExcel()">
+          Export All to Excel
+        </button>
+        <button onclick="loadDashboardExcel()">
+          Import All to Excel
+        </button>
+        <input id="dashboardExcelFile" type="file" accept=".xls,.html,.htm,application/vnd.ms-excel,text/html" style="display:none" onchange="importDashboardExcelFile(event)">
         <button onclick="sample()">
           Load Sample
         </button>
@@ -6010,6 +6017,232 @@ function importDashboardJsonFile(event){
     }
   };
   reader.onerror=function(){alert('Unable to read the selected JSON file.');};
+  reader.readAsText(file);
+}
+
+function dashboardEscapeHtml(value){
+  return String(value==null?'':value).replace(/[&<>'"]/g,function(ch){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch];
+  });
+}
+function dashboardExcelTimestamp(){
+  return new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+}
+function dashboardDownloadFile(filename, content, mimeType){
+  const blob=new Blob([content],{type:mimeType});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},0);
+}
+function dashboardObjectTable(title, rows){
+  const keys=[];
+  (rows||[]).forEach(function(row){
+    Object.keys(row||{}).forEach(function(k){ if(!keys.includes(k)) keys.push(k); });
+  });
+  const out=[];
+  out.push([title]);
+  out.push(keys);
+  (rows||[]).forEach(function(row){
+    out.push(keys.map(function(k){
+      const v=row&&row[k]!=null?row[k]:'';
+      return typeof v==='object'?JSON.stringify(v):v;
+    }));
+  });
+  return out;
+}
+function dashboardXmlEscape(value){
+  return String(value==null?'':value).replace(/[&<>'"]/g,function(ch){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&apos;','"':'&quot;'}[ch];
+  });
+}
+function dashboardExcelSafeSheetName(name){
+  let v=String(name||'Sheet').replace(/[\\\/\?\*\[\]:]/g,' ').replace(/\s+/g,' ').trim();
+  if(!v)v='Sheet';
+  return v.slice(0,31);
+}
+function dashboardExcelCell(value, styleId){
+  const raw=value==null?'':String(value);
+  const isNum=raw!==''&&!/^0\d+/.test(raw)&&isFinite(Number(raw));
+  const type=isNum?'Number':'String';
+  const data=isNum?String(Number(raw)):dashboardXmlEscape(raw);
+  return '<Cell'+(styleId?' ss:StyleID="'+styleId+'"':'')+'><Data ss:Type="'+type+'">'+data+'</Data></Cell>';
+}
+function dashboardExcelRow(cells, styleId){
+  return '<Row>'+(cells||[]).map(function(c){return dashboardExcelCell(c,styleId);}).join('')+'</Row>';
+}
+function dashboardExcelWorksheet(name, rows, hidden){
+  let xml='<Worksheet ss:Name="'+dashboardXmlEscape(dashboardExcelSafeSheetName(name))+'"><Table>';
+  (rows&&rows.length?rows:[[name,'No data available']]).forEach(function(row,idx){
+    xml+=dashboardExcelRow(row,idx===0?'Title':(idx===1?'Header':''));
+  });
+  xml+='</Table>';
+  if(hidden)xml+='<WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel"><Visible>SheetHidden</Visible></WorksheetOptions>';
+  xml+='</Worksheet>';
+  return xml;
+}
+function dashboardTableRowsFromElement(table){
+  const rows=[];
+  Array.prototype.slice.call(table.querySelectorAll('tr')).forEach(function(tr){
+    const cells=Array.prototype.slice.call(tr.children).filter(function(el){return /^(TD|TH)$/i.test(el.tagName);});
+    if(cells.length){
+      rows.push(cells.map(function(cell){return (cell.innerText||cell.textContent||'').replace(/\s+/g,' ').trim();}));
+    }
+  });
+  return rows;
+}
+function dashboardTextRowsFromSheet(sheet){
+  const rows=[];
+  const title=(sheet.querySelector('.head h2,h2,h1,h3')||{}).textContent||sheet.id||'Sheet';
+  rows.push([title.trim()]);
+  const metrics=Array.prototype.slice.call(sheet.querySelectorAll('.metricCard,.sum,.note,.heroInsightBox,.summaryStat')).slice(0,80);
+  metrics.forEach(function(el){
+    const label=(el.querySelector('.label,span,.heroInsightTitle')||{}).textContent||'';
+    const value=(el.querySelector('.value,b,.heroInsightValue')||{}).textContent||'';
+    const sub=(el.querySelector('.sub,p,.heroInsightSub')||{}).textContent||'';
+    const row=[label,value,sub].map(function(x){return String(x||'').replace(/\s+/g,' ').trim();});
+    if(row.join(''))rows.push(row);
+  });
+  if(rows.length===1){
+    const text=(sheet.innerText||sheet.textContent||'').replace(/\s+/g,' ').trim();
+    if(text)rows.push([text.slice(0,30000)]);
+  }
+  return rows;
+}
+function dashboardRowsForSheet(sheetId, title){
+  const sheet=document.getElementById(sheetId);
+  const rows=[];
+  rows.push([title]);
+  if(!sheet){rows.push(['Sheet not found in dashboard.']);return rows;}
+  const tables=Array.prototype.slice.call(sheet.querySelectorAll('table'));
+  if(tables.length){
+    tables.forEach(function(table,idx){
+      if(idx>0)rows.push([]);
+      const caption=(table.caption&&table.caption.textContent)||'';
+      if(caption)rows.push([caption.replace(/\s+/g,' ').trim()]);
+      const tableRows=dashboardTableRowsFromElement(table);
+      tableRows.forEach(function(r){rows.push(r);});
+    });
+  }else{
+    dashboardTextRowsFromSheet(sheet).slice(1).forEach(function(r){rows.push(r);});
+  }
+  return rows;
+}
+function dashboardExcelXmlPayload(){
+  const payload=dashboardJsonPayload();
+  const payloadJson=JSON.stringify(payload);
+  const sheetDefs=[
+    ['dashboard','Dashboard'],
+    ['summary','Summary'],
+    ['rating','Rating Sheet'],
+    ['monthlyStrength','Monthly KPI Data'],
+    ['analytics','Project Analytics'],
+    ['qaqcTestingData','QAQC TESTING DATA'],
+    ['data','Data Sheet'],
+    ['qitpRef','QITP Ref'],
+    ['legend','Instructions Legend']
+  ];
+  let xml='<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?>'+
+    '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:html="http://www.w3.org/TR/REC-html40">'+
+    '<DocumentProperties xmlns="urn:schemas-microsoft-com:office:office"><Title>QA/QC KPI Dashboard Export</Title><Created>'+dashboardXmlEscape(payload.exportedAt)+'</Created></DocumentProperties>'+
+    '<Styles><Style ss:ID="Default" ss:Name="Normal"><Alignment ss:Vertical="Top" ss:WrapText="1"/><Font ss:FontName="Arial" ss:Size="10"/></Style><Style ss:ID="Title"><Font ss:FontName="Arial" ss:Size="14" ss:Bold="1" ss:Color="#1f4e79"/></Style><Style ss:ID="Header"><Font ss:FontName="Arial" ss:Size="10" ss:Bold="1"/><Interior ss:Color="#D9EAD3" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/></Borders></Style></Styles>';
+  sheetDefs.forEach(function(def){
+    xml+=dashboardExcelWorksheet(def[1],dashboardRowsForSheet(def[0],def[1]),false);
+  });
+  xml+=dashboardExcelWorksheet('Data Records',dashboardObjectTable('Data Sheet Records',payload.records||[]),false);
+  xml+=dashboardExcelWorksheet('Monthly Records',dashboardObjectTable('Monthly KPI Records',payload.monthlyRecords||[]),false);
+  xml+=dashboardExcelWorksheet('_ImportData',[['dashboard-excel-export-data'],[payloadJson]],true);
+  xml+='</Workbook>';
+  return xml;
+}
+function saveDashboardExcel(){
+  try{
+    const xml=dashboardExcelXmlPayload();
+    dashboardDownloadFile('qaqc-kpi-dashboard-all-sheets-'+dashboardExcelTimestamp()+'.xls',xml,'application/vnd.ms-excel');
+  }catch(err){
+    alert('Unable to export Excel: '+(err&&err.message?err.message:err));
+  }
+}
+function loadDashboardExcel(){
+  const input=document.getElementById('dashboardExcelFile');
+  if(!input){alert('Excel file input is missing.');return;}
+  input.value='';
+  input.click();
+}
+function importDashboardPayload(payload, sourceLabel){
+  const importedRecords=Array.isArray(payload.records)?payload.records:[];
+  const importedMonthly=Array.isArray(payload.monthlyRecords)?payload.monthlyRecords:[];
+  if(!importedRecords.length&&!importedMonthly.length){
+    alert('This '+sourceLabel+' file does not contain dashboard records.');
+    return;
+  }
+  if(!confirm('Load this '+sourceLabel+' file and replace the current dashboard data?'))return;
+  if(typeof records!=='undefined'){
+    records.length=0;
+    importedRecords.forEach(function(r){records.push(typeof makeBlankRow==='function'?makeBlankRow(r):r);});
+  }
+  if(typeof monthlyRecords!=='undefined'){
+    monthlyRecords.length=0;
+    importedMonthly.forEach(function(r){monthlyRecords.push(typeof makeMonthlyRow==='function'?makeMonthlyRow(r):r);});
+  }
+  if(typeof renderDataSheet==='function')renderDataSheet();
+  if(typeof renderMonthlyData==='function')renderMonthlyData();
+  if(typeof syncDataSheetFromMonthly==='function')syncDataSheetFromMonthly({noRender:false});
+  if(typeof calc==='function')calc();
+  if(typeof renderAnalytics==='function')renderAnalytics();
+  if(typeof renderDashboard==='function')renderDashboard();
+  show(payload.activeSheet||'dashboard');
+  alert(sourceLabel+' data loaded successfully.');
+}
+function importDashboardExcelFile(event){
+  const file=event&&event.target&&event.target.files?event.target.files[0]:null;
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(){
+    try{
+      const text=String(reader.result||'');
+      let payload=null;
+
+      // New multi-sheet Excel XML export: read the hidden _ImportData worksheet payload.
+      try{
+        const xmlDoc=new DOMParser().parseFromString(text,'text/xml');
+        const parseError=xmlDoc.getElementsByTagName('parsererror')[0];
+        if(!parseError){
+          const worksheets=Array.prototype.slice.call(xmlDoc.getElementsByTagName('Worksheet'));
+          for(let i=0;i<worksheets.length;i++){
+            const ws=worksheets[i];
+            const name=ws.getAttribute('ss:Name')||ws.getAttribute('Name')||'';
+            if(name==='_ImportData'){
+              const dataNodes=Array.prototype.slice.call(ws.getElementsByTagName('Data'));
+              for(let j=0;j<dataNodes.length;j++){
+                const txt=dataNodes[j].textContent||'';
+                if(txt.trim().charAt(0)==='{'){
+                  payload=JSON.parse(txt);
+                  break;
+                }
+              }
+            }
+            if(payload)break;
+          }
+        }
+      }catch(xmlErr){}
+
+      // Legacy single-page .xls/.html export fallback.
+      if(!payload){
+        const doc=new DOMParser().parseFromString(text,'text/html');
+        const node=doc.getElementById('dashboard-excel-export-data');
+        if(node)payload=JSON.parse(node.textContent||'{}');
+      }
+
+      if(!payload)throw new Error('This Excel file must be an exported QA/QC KPI Dashboard .xls file from this system.');
+      importDashboardPayload(payload,'Excel');
+    }catch(err){
+      alert('Unable to load Excel: '+(err&&err.message?err.message:err));
+    }
+  };
+  reader.onerror=function(){alert('Unable to read the selected Excel file.');};
   reader.readAsText(file);
 }
 
